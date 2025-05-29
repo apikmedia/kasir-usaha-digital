@@ -11,24 +11,10 @@ CREATE TYPE subscription_plan AS ENUM ('basic', 'premium');
 CREATE TYPE order_status AS ENUM ('antrian', 'proses', 'selesai');
 CREATE TYPE payment_method AS ENUM ('cash', 'transfer');
 
--- Create users profile table (extends Supabase auth.users)
-CREATE TABLE profiles (
-    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    full_name TEXT,
-    business_name TEXT,
-    business_type business_type NOT NULL,
-    subscription_plan subscription_plan DEFAULT 'basic',
-    phone TEXT,
-    address TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
 -- Create customers table
 CREATE TABLE customers (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
     phone TEXT,
     address TEXT,
@@ -41,7 +27,7 @@ CREATE TABLE customers (
 -- Create products table (for warung)
 CREATE TABLE products (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
@@ -56,7 +42,7 @@ CREATE TABLE products (
 -- Create services table (for laundry and cuci motor)
 CREATE TABLE services (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
@@ -71,7 +57,7 @@ CREATE TABLE services (
 -- Create orders table
 CREATE TABLE orders (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
     order_number TEXT UNIQUE NOT NULL,
     business_type business_type NOT NULL,
@@ -124,7 +110,7 @@ CREATE TABLE bike_orders (
 -- Create transactions table (for tracking daily limits)
 CREATE TABLE transactions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     date DATE NOT NULL,
     transaction_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -135,7 +121,7 @@ CREATE TABLE transactions (
 -- Create subscription_usage table
 CREATE TABLE subscription_usage (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     month INTEGER NOT NULL,
     year INTEGER NOT NULL,
     transaction_count INTEGER DEFAULT 0,
@@ -159,7 +145,6 @@ CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_transactions_user_date ON transactions(user_id, date);
 
 -- Enable Row Level Security (RLS)
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
@@ -171,11 +156,6 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_usage ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Profiles policies
-CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-
 -- Customers policies
 CREATE POLICY "Users can manage own customers" ON customers FOR ALL USING (
     user_id = auth.uid()
@@ -324,9 +304,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create update triggers
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -344,15 +321,6 @@ CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
 
 CREATE TRIGGER update_subscription_usage_updated_at BEFORE UPDATE ON subscription_usage
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Insert default services for each business type
-INSERT INTO services (user_id, name, description, price, business_type, unit, estimated_duration) VALUES
--- These will be template services that users can copy
-('00000000-0000-0000-0000-000000000000', 'Cuci Basic', 'Cuci motor standar', 10000, 'cuci_motor', 'unit', 30),
-('00000000-0000-0000-0000-000000000000', 'Cuci Premium', 'Cuci motor dengan shampo khusus', 15000, 'cuci_motor', 'unit', 45),
-('00000000-0000-0000-0000-000000000000', 'Semir Body', 'Semir body motor', 20000, 'cuci_motor', 'unit', 60),
-('00000000-0000-0000-0000-000000000000', 'Cuci Regular', 'Cuci pakaian regular', 5000, 'laundry', 'kg', 1440),
-('00000000-0000-0000-0000-000000000000', 'Cuci Express', 'Cuci pakaian express (8 jam)', 8000, 'laundry', 'kg', 480);
 
 -- Create view for daily reports
 CREATE OR REPLACE VIEW daily_reports AS
@@ -374,7 +342,6 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
 
 -- Comment documentation
-COMMENT ON TABLE profiles IS 'User profiles with business information';
 COMMENT ON TABLE customers IS 'Customer information for each business';
 COMMENT ON TABLE products IS 'Products for warung business type';
 COMMENT ON TABLE services IS 'Services for laundry and cuci motor business types';

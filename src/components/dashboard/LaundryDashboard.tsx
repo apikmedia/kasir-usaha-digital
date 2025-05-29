@@ -1,94 +1,64 @@
 
 import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Waves, Clock, CheckCircle, Receipt, Search } from "lucide-react";
-import Navbar from '../layout/Navbar';
-
-interface LaundryOrder {
-  id: string;
-  customerName: string;
-  phone: string;
-  weight: number;
-  serviceType: 'regular' | 'express';
-  status: 'proses' | 'selesai';
-  price: number;
-  createdAt: string;
-  estimatedFinish: string;
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Waves, Plus, Clock, CheckCircle } from "lucide-react";
+import { useOrders } from '@/hooks/useOrders';
+import { useServices } from '@/hooks/useServices';
 
 const LaundryDashboard = () => {
-  const [orders, setOrders] = useState<LaundryOrder[]>([
-    {
-      id: '001',
-      customerName: 'Bu Sari',
-      phone: '08123456789',
-      weight: 3.5,
-      serviceType: 'regular',
-      status: 'proses',
-      price: 17500,
-      createdAt: '2024-01-15T10:00:00Z',
-      estimatedFinish: '2024-01-16T10:00:00Z'
-    },
-    {
-      id: '002',
-      customerName: 'Pak Budi',
-      phone: '08123456790',
-      weight: 2.0,
-      serviceType: 'express',
-      status: 'selesai',
-      price: 16000,
-      createdAt: '2024-01-15T08:00:00Z',
-      estimatedFinish: '2024-01-15T16:00:00Z'
-    }
-  ]);
-
-  const [showNewOrder, setShowNewOrder] = useState(false);
+  const { orders, loading: ordersLoading, createOrder, updateOrderStatus } = useOrders('laundry');
+  const { services, loading: servicesLoading } = useServices('laundry');
+  
   const [newOrder, setNewOrder] = useState({
-    customerName: '',
-    phone: '',
+    customer_name: '',
     weight: '',
-    serviceType: 'regular' as 'regular' | 'express'
+    service_id: '',
+    notes: '',
+    service_type: 'regular'
   });
 
-  const prices = {
-    regular: 5000, // per kg
-    express: 8000  // per kg
+  const handleCreateOrder = async () => {
+    const selectedService = services.find(s => s.id === newOrder.service_id);
+    if (!selectedService) return;
+
+    const totalAmount = selectedService.price * parseFloat(newOrder.weight || '0');
+    
+    const success = await createOrder({
+      total_amount: totalAmount,
+      notes: `Pelanggan: ${newOrder.customer_name}, Berat: ${newOrder.weight}kg, Catatan: ${newOrder.notes}`,
+      status: 'antrian'
+    });
+
+    if (success) {
+      setNewOrder({
+        customer_name: '',
+        weight: '',
+        service_id: '',
+        notes: '',
+        service_type: 'regular'
+      });
+    }
   };
 
-  const handleNewOrder = () => {
-    if (!newOrder.customerName || !newOrder.weight) return;
-    
-    const weight = parseFloat(newOrder.weight);
-    const price = weight * prices[newOrder.serviceType];
-    const estimatedHours = newOrder.serviceType === 'express' ? 8 : 24;
-    
-    const order: LaundryOrder = {
-      id: (orders.length + 1).toString().padStart(3, '0'),
-      customerName: newOrder.customerName,
-      phone: newOrder.phone,
-      weight,
-      serviceType: newOrder.serviceType,
-      status: 'proses',
-      price,
-      createdAt: new Date().toISOString(),
-      estimatedFinish: new Date(Date.now() + estimatedHours * 60 * 60 * 1000).toISOString()
-    };
-
-    setOrders([order, ...orders]);
-    setNewOrder({ customerName: '', phone: '', weight: '', serviceType: 'regular' });
-    setShowNewOrder(false);
-  };
-
-  const updateOrderStatus = (orderId: string, status: 'proses' | 'selesai') => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status } : order
-    ));
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'antrian':
+        return <Badge variant="secondary">Antrian</Badge>;
+      case 'proses':
+        return <Badge variant="default">Proses</Badge>;
+      case 'selesai':
+        return <Badge variant="destructive">Selesai</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -99,274 +69,225 @@ const LaundryDashboard = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Stats
-  const stats = {
-    totalOrders: orders.length,
-    ordersInProgress: orders.filter(o => o.status === 'proses').length,
-    ordersCompleted: orders.filter(o => o.status === 'selesai').length,
-    totalRevenue: orders.filter(o => o.status === 'selesai').reduce((sum, o) => sum + o.price, 0)
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-100">
-      <Navbar businessType="laundry" userName="Admin Laundry" />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard Laundry</h1>
-            <p className="text-gray-600 mt-1">Kelola pesanan dan layanan laundry Anda</p>
-          </div>
-          <Button 
-            onClick={() => setShowNewOrder(true)}
-            className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Pesanan Baru
-          </Button>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/80 backdrop-blur-sm border-blue-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Pesanan</CardTitle>
-              <Waves className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-orange-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Sedang Proses</CardTitle>
-              <Clock className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{stats.ordersInProgress}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-green-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Selesai</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.ordersCompleted}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-purple-100">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Pendapatan</CardTitle>
-              <Receipt className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{formatCurrency(stats.totalRevenue)}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="bg-white/80 backdrop-blur-sm">
-            <TabsTrigger value="orders">Pesanan Aktif</TabsTrigger>
-            <TabsTrigger value="history">Riwayat</TabsTrigger>
-            <TabsTrigger value="reports">Laporan</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="orders" className="space-y-6">
-            {/* Search Bar */}
-            <Card className="bg-white/80 backdrop-blur-sm">
-              <CardContent className="pt-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input 
-                    placeholder="Cari berdasarkan nama pelanggan atau nomor pesanan..."
-                    className="pl-10"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Orders List */}
-            <div className="grid gap-4">
-              {orders.map((order) => (
-                <Card key={order.id} className="bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-lg">#{order.id}</span>
-                          <Badge variant={order.status === 'selesai' ? 'default' : 'secondary'}>
-                            {order.status === 'selesai' ? 'Selesai' : 'Proses'}
-                          </Badge>
-                        </div>
-                        <p className="text-gray-900 font-medium">{order.customerName}</p>
-                        <p className="text-gray-600 text-sm">{order.phone}</p>
-                        <div className="flex gap-4 text-sm text-gray-600">
-                          <span>Berat: {order.weight} kg</span>
-                          <span>Layanan: {order.serviceType === 'express' ? 'Express' : 'Regular'}</span>
-                          <span className="font-semibold text-green-600">{formatCurrency(order.price)}</span>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          Estimasi selesai: {formatDate(order.estimatedFinish)}
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        {order.status === 'proses' && (
-                          <Button 
-                            onClick={() => updateOrderStatus(order.id, 'selesai')}
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Selesai
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm">
-                          <Receipt className="h-4 w-4 mr-2" />
-                          Cetak Nota
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="history">
-            <Card className="bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Riwayat Pesanan</CardTitle>
-                <CardDescription>
-                  Semua pesanan yang telah selesai
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500 text-center py-8">
-                  Riwayat pesanan akan ditampilkan di sini
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reports">
-            <Card className="bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Laporan Laundry</CardTitle>
-                <CardDescription>
-                  Analisis pendapatan dan performa bisnis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500 text-center py-8">
-                  Laporan akan ditampilkan di sini
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex items-center space-x-2">
+        <Waves className="h-8 w-8 text-blue-500" />
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard Laundry</h1>
       </div>
 
-      {/* New Order Modal */}
-      {showNewOrder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md bg-white">
+      <Tabs defaultValue="orders" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="orders">Pesanan</TabsTrigger>
+          <TabsTrigger value="new-order">Pesanan Baru</TabsTrigger>
+          <TabsTrigger value="services">Layanan</TabsTrigger>
+          <TabsTrigger value="reports">Laporan</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-4">
+          <Card>
             <CardHeader>
-              <CardTitle>Pesanan Baru</CardTitle>
-              <CardDescription>
-                Tambahkan pesanan laundry baru
-              </CardDescription>
+              <CardTitle>Daftar Pesanan</CardTitle>
+              <CardDescription>Kelola pesanan laundry Anda</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {ordersLoading ? (
+                <div className="text-center py-4">Memuat data...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>No. Pesanan</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                        <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {order.status === 'antrian' && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => updateOrderStatus(order.id, 'proses')}
+                              >
+                                <Clock className="h-4 w-4 mr-1" />
+                                Proses
+                              </Button>
+                            )}
+                            {order.status === 'proses' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => updateOrderStatus(order.id, 'selesai')}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Selesai
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="new-order" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Buat Pesanan Baru</CardTitle>
+              <CardDescription>Tambahkan pesanan laundry baru</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="customerName">Nama Pelanggan</Label>
-                <Input
-                  id="customerName"
-                  value={newOrder.customerName}
-                  onChange={(e) => setNewOrder({...newOrder, customerName: e.target.value})}
-                  placeholder="Masukkan nama pelanggan"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer">Nama Pelanggan</Label>
+                  <Input
+                    id="customer"
+                    value={newOrder.customer_name}
+                    onChange={(e) => setNewOrder({ ...newOrder, customer_name: e.target.value })}
+                    placeholder="Masukkan nama pelanggan"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Berat (kg)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.1"
+                    value={newOrder.weight}
+                    onChange={(e) => setNewOrder({ ...newOrder, weight: e.target.value })}
+                    placeholder="0.0"
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="phone">Nomor Telepon (Opsional)</Label>
-                <Input
-                  id="phone"
-                  value={newOrder.phone}
-                  onChange={(e) => setNewOrder({...newOrder, phone: e.target.value})}
-                  placeholder="08xxx"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="weight">Berat (kg)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  step="0.1"
-                  value={newOrder.weight}
-                  onChange={(e) => setNewOrder({...newOrder, weight: e.target.value})}
-                  placeholder="0.0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="serviceType">Jenis Layanan</Label>
-                <Select value={newOrder.serviceType} onValueChange={(value: 'regular' | 'express') => setNewOrder({...newOrder, serviceType: value})}>
+                <Label htmlFor="service">Layanan</Label>
+                <Select
+                  value={newOrder.service_id}
+                  onValueChange={(value) => setNewOrder({ ...newOrder, service_id: value })}
+                >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih layanan" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="regular">Regular - {formatCurrency(prices.regular)}/kg</SelectItem>
-                    <SelectItem value="express">Express - {formatCurrency(prices.express)}/kg</SelectItem>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name} - {formatCurrency(service.price)}/{service.unit}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {newOrder.weight && (
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    Total: {formatCurrency(parseFloat(newOrder.weight || '0') * prices[newOrder.serviceType])}
-                  </p>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Catatan</Label>
+                <Textarea
+                  id="notes"
+                  value={newOrder.notes}
+                  onChange={(e) => setNewOrder({ ...newOrder, notes: e.target.value })}
+                  placeholder="Catatan tambahan (opsional)"
+                />
+              </div>
+
+              <Button 
+                onClick={handleCreateOrder} 
+                className="w-full"
+                disabled={!newOrder.customer_name || !newOrder.weight || !newOrder.service_id}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Buat Pesanan
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="services">
+          <Card>
+            <CardHeader>
+              <CardTitle>Layanan Tersedia</CardTitle>
+              <CardDescription>Daftar layanan laundry</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {servicesLoading ? (
+                <div className="text-center py-4">Memuat data...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {services.map((service) => (
+                    <Card key={service.id}>
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold">{service.name}</h3>
+                        <p className="text-sm text-gray-600 mb-2">{service.description}</p>
+                        <p className="text-lg font-bold text-blue-600">
+                          {formatCurrency(service.price)}/{service.unit}
+                        </p>
+                        {service.estimated_duration && (
+                          <p className="text-xs text-gray-500">
+                            Estimasi: {Math.round(service.estimated_duration / 60)} jam
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="flex gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowNewOrder(false)}
-                  className="flex-1"
-                >
-                  Batal
-                </Button>
-                <Button
-                  onClick={handleNewOrder}
-                  disabled={!newOrder.customerName || !newOrder.weight}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
-                >
-                  Tambah Pesanan
-                </Button>
+        <TabsContent value="reports">
+          <Card>
+            <CardHeader>
+              <CardTitle>Laporan Harian</CardTitle>
+              <CardDescription>Ringkasan aktivitas hari ini</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-2xl font-bold text-blue-600">
+                      {orders.filter(o => o.created_at.startsWith(new Date().toISOString().split('T')[0])).length}
+                    </h3>
+                    <p className="text-sm text-gray-600">Pesanan Hari Ini</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-2xl font-bold text-green-600">
+                      {orders.filter(o => o.status === 'selesai' && o.created_at.startsWith(new Date().toISOString().split('T')[0])).length}
+                    </h3>
+                    <p className="text-sm text-gray-600">Selesai Hari Ini</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-2xl font-bold text-purple-600">
+                      {formatCurrency(
+                        orders
+                          .filter(o => o.created_at.startsWith(new Date().toISOString().split('T')[0]))
+                          .reduce((sum, o) => sum + o.total_amount, 0)
+                      )}
+                    </h3>
+                    <p className="text-sm text-gray-600">Pendapatan Hari Ini</p>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
