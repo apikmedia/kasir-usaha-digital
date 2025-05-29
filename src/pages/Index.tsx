@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Users, TrendingUp, Shield, Star } from "lucide-react";
+import AuthForm from "@/components/auth/AuthForm";
 
 const Index = () => {
   const [showAuth, setShowAuth] = useState(false);
@@ -56,7 +56,32 @@ const Index = () => {
   ];
 
   if (showAuth) {
-    return <AuthPage onBack={() => setShowAuth(false)} />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg"></div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                KasirPro
+              </h1>
+            </div>
+            <CardTitle className="text-center">Autentikasi</CardTitle>
+            <CardDescription className="text-center">
+              Masuk atau daftar untuk melanjutkan
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AuthForm />
+            <div className="mt-4 text-center">
+              <Button onClick={() => setShowAuth(false)} variant="outline" className="w-full">
+                Kembali ke Beranda
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
