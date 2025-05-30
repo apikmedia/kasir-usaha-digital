@@ -10,12 +10,14 @@ import { Plus } from "lucide-react";
 import { useOrders } from '@/hooks/useOrders';
 import { useServices } from '@/hooks/useServices';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useToast } from '@/hooks/use-toast';
 import LaundryAddCustomerDialog from '@/components/LaundryAddCustomerDialog';
 
 const LaundryNewOrder = () => {
   const { createOrder } = useOrders('laundry');
   const { services } = useServices('laundry');
   const { customers } = useCustomers();
+  const { toast } = useToast();
   
   const [newOrder, setNewOrder] = useState({
     customer_id: '',
@@ -36,25 +38,41 @@ const LaundryNewOrder = () => {
     try {
       setIsSubmitting(true);
       
-      // Validasi input
+      // Enhanced validation
       if (!newOrder.customer_name.trim()) {
-        console.error('Nama pelanggan harus diisi');
+        toast({
+          title: "Error",
+          description: "Nama pelanggan harus diisi",
+          variant: "destructive",
+        });
         return;
       }
 
       if (!newOrder.weight || parseFloat(newOrder.weight) <= 0) {
-        console.error('Berat harus diisi dan lebih dari 0');
+        toast({
+          title: "Error",
+          description: "Berat harus diisi dan lebih dari 0",
+          variant: "destructive",
+        });
         return;
       }
 
       if (!newOrder.service_id) {
-        console.error('Layanan harus dipilih');
+        toast({
+          title: "Error",
+          description: "Layanan harus dipilih",
+          variant: "destructive",
+        });
         return;
       }
 
       const selectedService = services.find(s => s.id === newOrder.service_id);
       if (!selectedService) {
-        console.error('Layanan tidak ditemukan');
+        toast({
+          title: "Error",
+          description: "Layanan tidak ditemukan",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -63,7 +81,7 @@ const LaundryNewOrder = () => {
       const deliveryFee = newOrder.pickup_delivery ? (parseFloat(newOrder.delivery_fee) || 0) : 0;
       const totalAmount = baseAmount + deliveryFee;
 
-      // Create order notes
+      // Create comprehensive order notes
       const orderNotes = [
         `Pelanggan: ${newOrder.customer_name.trim()}`,
         `Layanan: ${selectedService.name}`,
@@ -100,10 +118,21 @@ const LaundryNewOrder = () => {
           delivery_address: '',
           delivery_fee: ''
         });
+        
+        toast({
+          title: "Berhasil",
+          description: "Pesanan berhasil dibuat",
+        });
+        
         console.log('Order created successfully');
       }
     } catch (error) {
       console.error('Error in handleCreateOrder:', error);
+      toast({
+        title: "Error",
+        description: "Gagal membuat pesanan. Silakan coba lagi.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

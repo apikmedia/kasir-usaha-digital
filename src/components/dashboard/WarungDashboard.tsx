@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 import { useOrders } from '@/hooks/useOrders';
 import { useProducts } from '@/hooks/useProducts';
+import WarungProductsList from './WarungProductsList';
 
 interface CartItem {
   product: any;
@@ -22,13 +21,18 @@ const WarungDashboard = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = (product: any) => {
+    if (product.stock <= 0) return; // Don't add if no stock
+    
     const existingItem = cart.find(item => item.product.id === product.id);
     if (existingItem) {
-      setCart(cart.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
+      // Check if we can add more (don't exceed stock)
+      if (existingItem.quantity < product.stock) {
+        setCart(cart.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        ));
+      }
     } else {
       setCart([...cart, { product, quantity: 1 }]);
     }
@@ -42,11 +46,14 @@ const WarungDashboard = () => {
     if (newQuantity === 0) {
       removeFromCart(productId);
     } else {
-      setCart(cart.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
+      const product = products.find(p => p.id === productId);
+      if (product && newQuantity <= product.stock) {
+        setCart(cart.map(item =>
+          item.product.id === productId
+            ? { ...item, quantity: newQuantity }
+            : item
+        ));
+      }
     }
   };
 
@@ -58,19 +65,14 @@ const WarungDashboard = () => {
     if (cart.length === 0) return;
 
     const totalAmount = getTotalAmount();
-    const orderItems = cart.map(item => ({
-      product_id: item.product.id,
-      name: item.product.name,
-      price: item.product.price,
-      quantity: item.quantity,
-      unit: 'pcs',
-      subtotal: item.product.price * item.quantity
-    }));
+    const orderNotes = cart.map(item => 
+      `${item.product.name} x${item.quantity} = ${formatCurrency(item.product.price * item.quantity)}`
+    ).join(', ');
 
     const success = await createOrder({
       total_amount: totalAmount,
-      notes: `${cart.length} item(s)`,
-      status: 'selesai', // Warung orders are immediately completed
+      notes: orderNotes,
+      status: 'selesai',
       payment_status: true
     });
 
@@ -110,14 +112,14 @@ const WarungDashboard = () => {
       <Tabs defaultValue="cashier" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="cashier">Kasir</TabsTrigger>
-          <TabsTrigger value="products">Produk</TabsTrigger>
+          <TabsTrigger value="products">Kelola Produk</TabsTrigger>
           <TabsTrigger value="orders">Riwayat</TabsTrigger>
           <TabsTrigger value="reports">Laporan</TabsTrigger>
         </TabsList>
 
         <TabsContent value="cashier" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Products */}
+            {/* Products for Cashier */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
@@ -129,7 +131,7 @@ const WarungDashboard = () => {
                     <div className="text-center py-4">Memuat data...</div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {products.map((product) => (
+                      {products.filter(p => p.stock > 0).map((product) => (
                         <Card 
                           key={product.id} 
                           className="cursor-pointer hover:shadow-md transition-shadow"
@@ -181,6 +183,7 @@ const WarungDashboard = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                              disabled={item.quantity >= item.product.stock}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
@@ -219,38 +222,7 @@ const WarungDashboard = () => {
         </TabsContent>
 
         <TabsContent value="products">
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Produk</CardTitle>
-              <CardDescription>Kelola produk warung Anda</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {productsLoading ? (
-                <div className="text-center py-4">Memuat data...</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Produk</TableHead>
-                      <TableHead>Harga</TableHead>
-                      <TableHead>Stok</TableHead>
-                      <TableHead>Kategori</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{formatCurrency(product.price)}</TableCell>
-                        <TableCell>{product.stock}</TableCell>
-                        <TableCell>{product.category || '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <WarungProductsList />
         </TabsContent>
 
         <TabsContent value="orders">
