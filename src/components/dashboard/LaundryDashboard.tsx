@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,43 +8,81 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Waves, Plus, Clock, CheckCircle } from "lucide-react";
+import { Waves, Plus, Clock, CheckCircle, Users } from "lucide-react";
 import { useOrders } from '@/hooks/useOrders';
 import { useServices } from '@/hooks/useServices';
+import { useCustomers } from '@/hooks/useCustomers';
+import LaundryAddServiceDialog from '@/components/LaundryAddServiceDialog';
+import LaundryAddCustomerDialog from '@/components/LaundryAddCustomerDialog';
 
 const LaundryDashboard = () => {
   const { orders, loading: ordersLoading, createOrder, updateOrderStatus } = useOrders('laundry');
   const { services, loading: servicesLoading } = useServices('laundry');
+  const { customers, loading: customersLoading } = useCustomers();
   
   const [newOrder, setNewOrder] = useState({
+    customer_id: '',
     customer_name: '',
     weight: '',
     service_id: '',
     notes: '',
-    service_type: 'regular'
+    pickup_delivery: false,
+    delivery_address: '',
+    delivery_fee: ''
   });
 
   const handleCreateOrder = async () => {
     const selectedService = services.find(s => s.id === newOrder.service_id);
     if (!selectedService) return;
 
-    const totalAmount = selectedService.price * parseFloat(newOrder.weight || '0');
+    const baseAmount = selectedService.price * parseFloat(newOrder.weight || '0');
+    const deliveryFee = newOrder.pickup_delivery ? parseFloat(newOrder.delivery_fee || '0') : 0;
+    const totalAmount = baseAmount + deliveryFee;
+
+    const orderNotes = [
+      `Pelanggan: ${newOrder.customer_name}`,
+      `Berat: ${newOrder.weight}kg`,
+      newOrder.notes && `Catatan: ${newOrder.notes}`,
+      newOrder.pickup_delivery && `Antar Jemput: ${newOrder.delivery_address}`,
+      newOrder.pickup_delivery && `Biaya Antar: Rp ${new Intl.NumberFormat('id-ID').format(deliveryFee)}`
+    ].filter(Boolean).join(', ');
     
     const success = await createOrder({
+      customer_id: newOrder.customer_id || null,
       total_amount: totalAmount,
-      notes: `Pelanggan: ${newOrder.customer_name}, Berat: ${newOrder.weight}kg, Catatan: ${newOrder.notes}`,
+      notes: orderNotes,
       status: 'antrian'
     });
 
     if (success) {
       setNewOrder({
+        customer_id: '',
         customer_name: '',
         weight: '',
         service_id: '',
         notes: '',
-        service_type: 'regular'
+        pickup_delivery: false,
+        delivery_address: '',
+        delivery_fee: ''
       });
     }
+  };
+
+  const handleCustomerSelect = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    setNewOrder({
+      ...newOrder,
+      customer_id: customerId,
+      customer_name: customer?.name || ''
+    });
+  };
+
+  const handleCustomerAdded = (customer: any) => {
+    setNewOrder({
+      ...newOrder,
+      customer_id: customer.id,
+      customer_name: customer.name
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -77,10 +114,11 @@ const LaundryDashboard = () => {
       </div>
 
       <Tabs defaultValue="orders" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="orders">Pesanan</TabsTrigger>
           <TabsTrigger value="new-order">Pesanan Baru</TabsTrigger>
           <TabsTrigger value="services">Layanan</TabsTrigger>
+          <TabsTrigger value="customers">Pelanggan</TabsTrigger>
           <TabsTrigger value="reports">Laporan</TabsTrigger>
         </TabsList>
 
@@ -101,6 +139,7 @@ const LaundryDashboard = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Tanggal</TableHead>
+                      <TableHead>Catatan</TableHead>
                       <TableHead>Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -111,6 +150,7 @@ const LaundryDashboard = () => {
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                         <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell className="max-w-xs truncate">{order.notes}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             {order.status === 'antrian' && (
@@ -152,12 +192,32 @@ const LaundryDashboard = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customer">Nama Pelanggan</Label>
+                  <Label htmlFor="customer">Pelanggan</Label>
+                  <div className="flex space-x-2">
+                    <Select
+                      value={newOrder.customer_id}
+                      onValueChange={handleCustomerSelect}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Pilih pelanggan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name} {customer.phone && `- ${customer.phone}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <LaundryAddCustomerDialog 
+                      triggerVariant="icon" 
+                      onCustomerAdded={handleCustomerAdded}
+                    />
+                  </div>
                   <Input
-                    id="customer"
+                    placeholder="Atau ketik nama langsung"
                     value={newOrder.customer_name}
                     onChange={(e) => setNewOrder({ ...newOrder, customer_name: e.target.value })}
-                    placeholder="Masukkan nama pelanggan"
                   />
                 </div>
                 <div className="space-y-2">
@@ -193,6 +253,44 @@ const LaundryDashboard = () => {
               </div>
 
               <div className="space-y-2">
+                <Label>Antar Jemput</Label>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="pickup"
+                    type="checkbox"
+                    checked={newOrder.pickup_delivery}
+                    onChange={(e) => setNewOrder({ ...newOrder, pickup_delivery: e.target.checked })}
+                  />
+                  <Label htmlFor="pickup">Aktifkan</Label>
+                </div>
+              </div>
+
+              {newOrder.pickup_delivery && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery_address">Alamat Antar</Label>
+                    <Input
+                      id="delivery_address"
+                      value={newOrder.delivery_address}
+                      onChange={(e) => setNewOrder({ ...newOrder, delivery_address: e.target.value })}
+                      placeholder="Alamat lengkap"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery_fee">Biaya Antar</Label>
+                    <Input
+                      id="delivery_fee"
+                      type="number"
+                      step="1000"
+                      value={newOrder.delivery_fee}
+                      onChange={(e) => setNewOrder({ ...newOrder, delivery_fee: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
                 <Label htmlFor="notes">Catatan</Label>
                 <Textarea
                   id="notes"
@@ -216,9 +314,12 @@ const LaundryDashboard = () => {
 
         <TabsContent value="services">
           <Card>
-            <CardHeader>
-              <CardTitle>Layanan Tersedia</CardTitle>
-              <CardDescription>Daftar layanan laundry</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Layanan Tersedia</CardTitle>
+                <CardDescription>Daftar layanan laundry</CardDescription>
+              </div>
+              <LaundryAddServiceDialog />
             </CardHeader>
             <CardContent>
               {servicesLoading ? (
@@ -242,6 +343,46 @@ const LaundryDashboard = () => {
                     </Card>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="customers">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Data Pelanggan</CardTitle>
+                <CardDescription>Daftar pelanggan laundry</CardDescription>
+              </div>
+              <LaundryAddCustomerDialog />
+            </CardHeader>
+            <CardContent>
+              {customersLoading ? (
+                <div className="text-center py-4">Memuat data...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nama</TableHead>
+                      <TableHead>Telepon</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Alamat</TableHead>
+                      <TableHead>Terdaftar</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.phone || '-'}</TableCell>
+                        <TableCell>{customer.email || '-'}</TableCell>
+                        <TableCell className="max-w-xs truncate">{customer.address || '-'}</TableCell>
+                        <TableCell>{new Date(customer.created_at).toLocaleDateString('id-ID')}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
