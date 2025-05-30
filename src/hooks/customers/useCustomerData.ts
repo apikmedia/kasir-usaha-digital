@@ -36,9 +36,8 @@ export const useCustomerData = (businessType?: BusinessType) => {
       // Map Supabase data to Customer interface with proper type validation
       const validCustomers: Customer[] = (data || [])
         .filter((item) => {
-          return item.business_type === 'laundry' || 
-                 item.business_type === 'warung' || 
-                 item.business_type === 'cuci_motor';
+          const validBusinessTypes: BusinessType[] = ['laundry', 'warung', 'cuci_motor'];
+          return validBusinessTypes.includes(item.business_type as BusinessType);
         })
         .map((item) => ({
           id: item.id,
