@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit } from "lucide-react";
-import { useCustomers, Customer } from '@/hooks/useCustomers';
+import { useCustomers } from '@/hooks/useCustomers';
+import type { Customer } from '@/types/customer';
 
 interface CuciMotorEditCustomerDialogProps {
   customer: Customer;
