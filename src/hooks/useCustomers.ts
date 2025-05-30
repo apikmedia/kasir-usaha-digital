@@ -22,14 +22,69 @@ export const useCustomers = () => {
 
   useEffect(() => {
     fetchCustomers();
+    
+    // Set up real-time subscription for customers
+    const channel = supabase
+      .channel(`customers-${Date.now()}`) // Unique channel name
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customers'
+        },
+        (payload) => {
+          console.log('Real-time customers update:', payload);
+          
+          // Handle different event types for immediate UI updates
+          if (payload.eventType === 'INSERT') {
+            const newCustomer = payload.new as Customer;
+            if (newCustomer.user_id === getCurrentUserId()) {
+              setCustomers(prev => [...prev, newCustomer].sort((a, b) => a.name.localeCompare(b.name)));
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedCustomer = payload.new as Customer;
+            if (updatedCustomer.user_id === getCurrentUserId()) {
+              setCustomers(prev => prev.map(customer => 
+                customer.id === updatedCustomer.id ? updatedCustomer : customer
+              ).sort((a, b) => a.name.localeCompare(b.name)));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedCustomer = payload.old as Customer;
+            setCustomers(prev => prev.filter(customer => customer.id !== deletedCustomer.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Customers subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up customers subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  // Helper function to get current user ID
+  const getCurrentUserId = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id;
+  };
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('customers')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
 
       if (error) throw error;
@@ -48,7 +103,6 @@ export const useCustomers = () => {
 
   const createCustomer = async (customerData: Omit<Customer, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -71,7 +125,10 @@ export const useCustomers = () => {
 
       if (error) throw error;
 
-      setCustomers(prev => [...prev, data]);
+      // The real-time subscription will handle the UI update automatically
+      // But we can also manually add it for immediate feedback
+      setCustomers(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      
       toast({
         title: "Berhasil",
         description: "Pelanggan berhasil ditambahkan",

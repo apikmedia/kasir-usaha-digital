@@ -23,9 +23,9 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
   useEffect(() => {
     fetchServices();
     
-    // Set up real-time subscription
+    // Set up real-time subscription with better channel management
     const channel = supabase
-      .channel('services-changes')
+      .channel(`services-${businessType}-${Date.now()}`) // Unique channel name
       .on(
         'postgres_changes',
         {
@@ -36,15 +36,41 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
         },
         (payload) => {
           console.log('Real-time services update:', payload);
-          fetchServices(); // Refresh data on any change
+          
+          // Handle different event types for immediate UI updates
+          if (payload.eventType === 'INSERT') {
+            const newService = payload.new as Service;
+            if (newService.user_id === getCurrentUserId()) {
+              setServices(prev => [...prev, newService]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedService = payload.new as Service;
+            if (updatedService.user_id === getCurrentUserId()) {
+              setServices(prev => prev.map(service => 
+                service.id === updatedService.id ? updatedService : service
+              ));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedService = payload.old as Service;
+            setServices(prev => prev.filter(service => service.id !== deletedService.id));
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Services subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up services subscription');
       supabase.removeChannel(channel);
     };
   }, [businessType]);
+
+  // Helper function to get current user ID
+  const getCurrentUserId = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id;
+  };
 
   const fetchServices = async () => {
     try {
@@ -93,7 +119,6 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
     try {
       console.log('Creating service with data:', serviceData);
       
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -131,8 +156,9 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
         description: "Layanan berhasil ditambahkan",
       });
       
-      // Force immediate refresh
-      await fetchServices();
+      // The real-time subscription will handle the UI update automatically
+      // But we can also manually add it for immediate feedback
+      setServices(prev => [...prev, data]);
       
       return data;
     } catch (error) {

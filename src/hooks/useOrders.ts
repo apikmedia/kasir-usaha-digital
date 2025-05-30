@@ -29,7 +29,7 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
     
     // Set up real-time subscription
     const channel = supabase
-      .channel('orders-changes')
+      .channel(`orders-${businessType}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -91,7 +91,6 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
     try {
       console.log('Creating order with data:', orderData);
       
-      // Get current user first
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -126,7 +125,7 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
         return false;
       }
 
-      // Generate order number
+      // Generate order number using the corrected function
       const businessPrefix = businessType === 'laundry' ? 'LDY' : 
                            businessType === 'warung' ? 'WRG' : 'CMT';
       
@@ -137,7 +136,11 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
       if (orderNumberError) {
         console.error('Error generating order number:', orderNumberError);
-        throw orderNumberError;
+        throw new Error(`Gagal membuat nomor pesanan: ${orderNumberError.message}`);
+      }
+
+      if (!orderNumber) {
+        throw new Error('Nomor pesanan tidak berhasil dibuat');
       }
 
       console.log('Generated order number:', orderNumber);
@@ -164,7 +167,7 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
       if (error) {
         console.error('Error inserting order:', error);
-        throw error;
+        throw new Error(`Gagal menyimpan pesanan: ${error.message}`);
       }
 
       console.log('Order created successfully:', data);
@@ -174,8 +177,8 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
         description: "Pesanan berhasil dibuat dengan nomor: " + orderNumber,
       });
       
-      // Force immediate refresh
-      await fetchOrders();
+      // Add the new order to the state immediately
+      setOrders(prev => [data, ...prev]);
       
       return true;
     } catch (error) {

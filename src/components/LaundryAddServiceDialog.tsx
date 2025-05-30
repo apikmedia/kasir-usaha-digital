@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -45,7 +44,7 @@ const LaundryAddServiceDialog = () => {
       });
 
       if (result) {
-        console.log('Service created, resetting form...');
+        console.log('Service created successfully, resetting form...');
         // Reset form data
         setServiceData({
           name: '',
