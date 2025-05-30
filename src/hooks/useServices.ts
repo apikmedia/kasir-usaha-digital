@@ -18,9 +18,17 @@ export interface Service {
 export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    // Get current user ID first
+    const initializeUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    
+    initializeUser();
     fetchServices();
     
     // Set up real-time subscription with better channel management
@@ -40,12 +48,12 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
           // Handle different event types for immediate UI updates
           if (payload.eventType === 'INSERT') {
             const newService = payload.new as Service;
-            if (newService.user_id === getCurrentUserId()) {
+            if (newService.user_id === currentUserId) {
               setServices(prev => [...prev, newService]);
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedService = payload.new as Service;
-            if (updatedService.user_id === getCurrentUserId()) {
+            if (updatedService.user_id === currentUserId) {
               setServices(prev => prev.map(service => 
                 service.id === updatedService.id ? updatedService : service
               ));
@@ -64,13 +72,7 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
       console.log('Cleaning up services subscription');
       supabase.removeChannel(channel);
     };
-  }, [businessType]);
-
-  // Helper function to get current user ID
-  const getCurrentUserId = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id;
-  };
+  }, [businessType, currentUserId]);
 
   const fetchServices = async () => {
     try {

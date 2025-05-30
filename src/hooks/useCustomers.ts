@@ -18,9 +18,17 @@ export interface Customer {
 export const useCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    // Get current user ID first
+    const initializeUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    
+    initializeUser();
     fetchCustomers();
     
     // Set up real-time subscription for customers
@@ -39,12 +47,12 @@ export const useCustomers = () => {
           // Handle different event types for immediate UI updates
           if (payload.eventType === 'INSERT') {
             const newCustomer = payload.new as Customer;
-            if (newCustomer.user_id === getCurrentUserId()) {
+            if (newCustomer.user_id === currentUserId) {
               setCustomers(prev => [...prev, newCustomer].sort((a, b) => a.name.localeCompare(b.name)));
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedCustomer = payload.new as Customer;
-            if (updatedCustomer.user_id === getCurrentUserId()) {
+            if (updatedCustomer.user_id === currentUserId) {
               setCustomers(prev => prev.map(customer => 
                 customer.id === updatedCustomer.id ? updatedCustomer : customer
               ).sort((a, b) => a.name.localeCompare(b.name)));
@@ -63,13 +71,7 @@ export const useCustomers = () => {
       console.log('Cleaning up customers subscription');
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  // Helper function to get current user ID
-  const getCurrentUserId = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id;
-  };
+  }, [currentUserId]);
 
   const fetchCustomers = async () => {
     try {
