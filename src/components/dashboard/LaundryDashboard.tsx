@@ -2,7 +2,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Waves } from "lucide-react";
 import LaundryOrdersList from './LaundryOrdersList';
-import LaundryNewOrder from './LaundryNewOrder';
+import LaundryOrderForm from '../laundry/LaundryOrderForm';
 import LaundryServicesList from './LaundryServicesList';
 import LaundryCustomersList from './LaundryCustomersList';
 import LaundryReports from './LaundryReports';
@@ -29,7 +29,7 @@ const LaundryDashboard = () => {
         </TabsContent>
 
         <TabsContent value="new-order">
-          <LaundryNewOrder />
+          <LaundryOrderForm />
         </TabsContent>
 
         <TabsContent value="services">
