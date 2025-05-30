@@ -125,7 +125,7 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
         return false;
       }
 
-      // Generate order number using the corrected function
+      // Generate order number using the improved function
       const businessPrefix = businessType === 'laundry' ? 'LDY' : 
                            businessType === 'warung' ? 'WRG' : 'CMT';
       
@@ -159,28 +159,64 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
       console.log('Inserting order:', newOrder);
 
-      const { data, error } = await supabase
-        .from('orders')
-        .insert(newOrder)
-        .select()
-        .single();
+      // Use a transaction-like approach with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          const { data, error } = await supabase
+            .from('orders')
+            .insert(newOrder)
+            .select()
+            .single();
 
-      if (error) {
-        console.error('Error inserting order:', error);
-        throw new Error(`Gagal menyimpan pesanan: ${error.message}`);
+          if (error) {
+            // If it's a duplicate key error, try generating a new order number
+            if (error.code === '23505' && error.message.includes('orders_order_number_key')) {
+              console.log(`Duplicate order number detected, retry ${retryCount + 1}/${maxRetries}`);
+              retryCount++;
+              
+              if (retryCount >= maxRetries) {
+                throw new Error('Gagal membuat nomor pesanan unik setelah beberapa percobaan. Silakan coba lagi.');
+              }
+              
+              // Generate a new order number and retry
+              const { data: newOrderNumber, error: newOrderNumberError } = await supabase
+                .rpc('generate_order_number', { business_prefix: businessPrefix });
+              
+              if (newOrderNumberError || !newOrderNumber) {
+                throw new Error('Gagal membuat nomor pesanan baru');
+              }
+              
+              newOrder.order_number = newOrderNumber;
+              console.log('Retrying with new order number:', newOrderNumber);
+              continue;
+            } else {
+              throw error;
+            }
+          }
+
+          console.log('Order created successfully:', data);
+
+          toast({
+            title: "Berhasil",
+            description: "Pesanan berhasil dibuat dengan nomor: " + orderNumber,
+          });
+          
+          // Add the new order to the state immediately
+          setOrders(prev => [data, ...prev]);
+          
+          return true;
+        } catch (insertError) {
+          if (retryCount === maxRetries - 1) {
+            throw insertError;
+          }
+          retryCount++;
+        }
       }
 
-      console.log('Order created successfully:', data);
-
-      toast({
-        title: "Berhasil",
-        description: "Pesanan berhasil dibuat dengan nomor: " + orderNumber,
-      });
-      
-      // Add the new order to the state immediately
-      setOrders(prev => [data, ...prev]);
-      
-      return true;
+      return false;
     } catch (error) {
       console.error('Error in createOrder:', error);
       toast({
