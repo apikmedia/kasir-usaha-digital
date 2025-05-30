@@ -103,17 +103,20 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
           console.log('Real-time services update:', payload);
           
           // Only process changes for the current user
-          const serviceData = payload.new || payload.old;
-          if (serviceData && serviceData.user_id === currentUserId) {
-            if (payload.eventType === 'INSERT') {
-              const newService = payload.new as Service;
-              addService(newService);
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedService = payload.new as Service;
-              updateServiceInState(updatedService);
-            } else if (payload.eventType === 'DELETE') {
-              const deletedService = payload.old as Service;
-              removeService(deletedService.id);
+          if (payload.eventType === 'INSERT') {
+            const newServiceData = payload.new as any;
+            if (newServiceData && newServiceData.user_id === currentUserId) {
+              addService(newServiceData as Service);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedServiceData = payload.new as any;
+            if (updatedServiceData && updatedServiceData.user_id === currentUserId) {
+              updateServiceInState(updatedServiceData as Service);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedServiceData = payload.old as any;
+            if (deletedServiceData && deletedServiceData.user_id === currentUserId) {
+              removeService(deletedServiceData.id);
             }
           }
         }

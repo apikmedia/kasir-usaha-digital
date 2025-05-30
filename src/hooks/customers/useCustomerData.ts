@@ -65,13 +65,39 @@ export const useCustomerData = (businessType?: BusinessType) => {
     }
   };
 
-  const addCustomer = (newCustomer: Customer) => {
-    setCustomers(prev => [...prev, newCustomer].sort((a, b) => a.name.localeCompare(b.name)));
+  const addCustomer = (newCustomer: any) => {
+    // Type-cast the customer data to ensure proper typing
+    const typedCustomer: Customer = {
+      id: newCustomer.id,
+      name: newCustomer.name,
+      phone: newCustomer.phone || undefined,
+      email: newCustomer.email || undefined,
+      address: newCustomer.address || undefined,
+      notes: newCustomer.notes || undefined,
+      business_type: newCustomer.business_type as BusinessType,
+      user_id: newCustomer.user_id,
+      created_at: newCustomer.created_at,
+      updated_at: newCustomer.updated_at
+    };
+    setCustomers(prev => [...prev, typedCustomer].sort((a, b) => a.name.localeCompare(b.name)));
   };
 
-  const updateCustomer = (updatedCustomer: Customer) => {
+  const updateCustomer = (updatedCustomer: any) => {
+    // Type-cast the customer data to ensure proper typing
+    const typedCustomer: Customer = {
+      id: updatedCustomer.id,
+      name: updatedCustomer.name,
+      phone: updatedCustomer.phone || undefined,
+      email: updatedCustomer.email || undefined,
+      address: updatedCustomer.address || undefined,
+      notes: updatedCustomer.notes || undefined,
+      business_type: updatedCustomer.business_type as BusinessType,
+      user_id: updatedCustomer.user_id,
+      created_at: updatedCustomer.created_at,
+      updated_at: updatedCustomer.updated_at
+    };
     setCustomers(prev => prev.map(customer => 
-      customer.id === updatedCustomer.id ? updatedCustomer : customer
+      customer.id === typedCustomer.id ? typedCustomer : customer
     ).sort((a, b) => a.name.localeCompare(b.name)));
   };
 

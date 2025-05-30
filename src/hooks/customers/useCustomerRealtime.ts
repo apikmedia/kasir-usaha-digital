@@ -26,25 +26,51 @@ export const useCustomerRealtime = ({ businessType, currentUserId, setCustomers 
           console.log('Real-time customers update:', payload);
           
           if (payload.eventType === 'INSERT') {
-            const newCustomer = payload.new as Customer;
-            if (newCustomer.user_id === currentUserId && 
-                (!businessType || newCustomer.business_type === businessType)) {
-              setCustomers(prev => [...prev, newCustomer].sort((a, b) => a.name.localeCompare(b.name)));
+            const newCustomerData = payload.new as any;
+            if (newCustomerData && newCustomerData.user_id === currentUserId && 
+                (!businessType || newCustomerData.business_type === businessType)) {
+              const typedCustomer: Customer = {
+                id: newCustomerData.id,
+                name: newCustomerData.name,
+                phone: newCustomerData.phone || undefined,
+                email: newCustomerData.email || undefined,
+                address: newCustomerData.address || undefined,
+                notes: newCustomerData.notes || undefined,
+                business_type: newCustomerData.business_type as BusinessType,
+                user_id: newCustomerData.user_id,
+                created_at: newCustomerData.created_at,
+                updated_at: newCustomerData.updated_at
+              };
+              setCustomers(prev => [...prev, typedCustomer].sort((a, b) => a.name.localeCompare(b.name)));
             }
           } else if (payload.eventType === 'UPDATE') {
-            const updatedCustomer = payload.new as Customer;
-            if (updatedCustomer.user_id === currentUserId) {
+            const updatedCustomerData = payload.new as any;
+            if (updatedCustomerData && updatedCustomerData.user_id === currentUserId) {
               setCustomers(prev => {
-                const filtered = prev.filter(customer => customer.id !== updatedCustomer.id);
-                if (!businessType || updatedCustomer.business_type === businessType) {
-                  return [...filtered, updatedCustomer].sort((a, b) => a.name.localeCompare(b.name));
+                const filtered = prev.filter(customer => customer.id !== updatedCustomerData.id);
+                if (!businessType || updatedCustomerData.business_type === businessType) {
+                  const typedCustomer: Customer = {
+                    id: updatedCustomerData.id,
+                    name: updatedCustomerData.name,
+                    phone: updatedCustomerData.phone || undefined,
+                    email: updatedCustomerData.email || undefined,
+                    address: updatedCustomerData.address || undefined,
+                    notes: updatedCustomerData.notes || undefined,
+                    business_type: updatedCustomerData.business_type as BusinessType,
+                    user_id: updatedCustomerData.user_id,
+                    created_at: updatedCustomerData.created_at,
+                    updated_at: updatedCustomerData.updated_at
+                  };
+                  return [...filtered, typedCustomer].sort((a, b) => a.name.localeCompare(b.name));
                 }
                 return filtered;
               });
             }
           } else if (payload.eventType === 'DELETE') {
-            const deletedCustomer = payload.old as Customer;
-            setCustomers(prev => prev.filter(customer => customer.id !== deletedCustomer.id));
+            const deletedCustomerData = payload.old as any;
+            if (deletedCustomerData) {
+              setCustomers(prev => prev.filter(customer => customer.id !== deletedCustomerData.id));
+            }
           }
         }
       )
