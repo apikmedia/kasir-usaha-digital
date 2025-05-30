@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrders } from '@/hooks/useOrders';
 import { useServices } from '@/hooks/useServices';
-import { useCustomers } from '@/hooks/useCustomers';
 import { useToast } from '@/hooks/use-toast';
 import CustomerSelection from './CustomerSelection';
 import ServiceDetails from './ServiceDetails';
@@ -16,7 +15,6 @@ import type { LaundryOrderFormData } from './types';
 const LaundryOrderForm = () => {
   const { createOrder } = useOrders('laundry');
   const { services } = useServices('laundry');
-  const { customers } = useCustomers();
   const { toast } = useToast();
   
   const [orderData, setOrderData] = useState<LaundryOrderFormData>({
@@ -181,7 +179,6 @@ const LaundryOrderForm = () => {
         <CustomerSelection
           orderData={orderData}
           setOrderData={setOrderData}
-          customers={customers}
           onCustomerAdded={handleCustomerAdded}
         />
         

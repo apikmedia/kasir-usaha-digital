@@ -9,7 +9,7 @@ import { Plus } from "lucide-react";
 import { useCustomers } from '@/hooks/useCustomers';
 
 const CuciMotorAddCustomerDialog = () => {
-  const { createCustomer } = useCustomers();
+  const { createCustomer } = useCustomers('cuci_motor');
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -27,7 +27,8 @@ const CuciMotorAddCustomerDialog = () => {
       phone: formData.phone || undefined,
       email: formData.email || undefined,
       address: formData.address || undefined,
-      notes: formData.notes || undefined
+      notes: formData.notes || undefined,
+      business_type: 'cuci_motor' as const
     };
 
     const success = await createCustomer(customerData);
@@ -55,7 +56,7 @@ const CuciMotorAddCustomerDialog = () => {
         <DialogHeader>
           <DialogTitle>Tambah Pelanggan Baru</DialogTitle>
           <DialogDescription>
-            Masukkan detail pelanggan yang akan ditambahkan
+            Masukkan detail pelanggan cuci motor yang akan ditambahkan
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

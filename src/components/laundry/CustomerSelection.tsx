@@ -3,16 +3,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LaundryAddCustomerDialog from '@/components/LaundryAddCustomerDialog';
+import { useCustomers } from '@/hooks/useCustomers';
 import type { LaundryOrderFormData } from './types';
 
 interface CustomerSelectionProps {
   orderData: LaundryOrderFormData;
   setOrderData: (data: LaundryOrderFormData) => void;
-  customers: any[];
   onCustomerAdded: (customer: any) => void;
 }
 
-const CustomerSelection = ({ orderData, setOrderData, customers, onCustomerAdded }: CustomerSelectionProps) => {
+const CustomerSelection = ({ orderData, setOrderData, onCustomerAdded }: CustomerSelectionProps) => {
+  const { customers } = useCustomers('laundry');
+
   const handleCustomerSelect = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {

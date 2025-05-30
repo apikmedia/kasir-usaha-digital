@@ -14,7 +14,7 @@ interface LaundryAddCustomerDialogProps {
 }
 
 const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded }: LaundryAddCustomerDialogProps) => {
-  const { createCustomer } = useCustomers();
+  const { createCustomer } = useCustomers('laundry');
   const [open, setOpen] = useState(false);
   const [customerData, setCustomerData] = useState({
     name: '',
@@ -36,7 +36,8 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
       phone: customerData.phone.trim() || undefined,
       email: customerData.email.trim() || undefined,
       address: customerData.address.trim() || undefined,
-      notes: customerData.notes.trim() || undefined
+      notes: customerData.notes.trim() || undefined,
+      business_type: 'laundry' as const
     });
 
     if (result) {
@@ -75,7 +76,7 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
         <DialogHeader>
           <DialogTitle>Tambah Pelanggan Baru</DialogTitle>
           <DialogDescription>
-            Tambahkan data pelanggan baru ke dalam sistem
+            Tambahkan data pelanggan laundry baru ke dalam sistem
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

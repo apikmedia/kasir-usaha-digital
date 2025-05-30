@@ -8,7 +8,7 @@ import CuciMotorAddCustomerDialog from '@/components/CuciMotorAddCustomerDialog'
 import CuciMotorEditCustomerDialog from '@/components/CuciMotorEditCustomerDialog';
 
 const CuciMotorCustomersList = () => {
-  const { customers, loading, deleteCustomer } = useCustomers();
+  const { customers, loading, deleteCustomer } = useCustomers('cuci_motor');
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus pelanggan "${name}"?`)) {
@@ -28,6 +28,10 @@ const CuciMotorCustomersList = () => {
       <CardContent>
         {loading ? (
           <div className="text-center py-4">Memuat data...</div>
+        ) : customers.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            Belum ada data pelanggan cuci motor
+          </div>
         ) : (
           <Table>
             <TableHeader>

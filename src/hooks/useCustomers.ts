@@ -10,12 +10,13 @@ export interface Customer {
   email?: string;
   address?: string;
   notes?: string;
+  business_type: 'laundry' | 'warung' | 'cuci_motor';
   user_id: string;
   created_at: string;
   updated_at: string;
 }
 
-export const useCustomers = () => {
+export const useCustomers = (businessType?: 'laundry' | 'warung' | 'cuci_motor') => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export const useCustomers = () => {
     
     // Set up real-time subscription for customers
     const channel = supabase
-      .channel(`customers-${Date.now()}`) // Unique channel name
+      .channel(`customers-${businessType || 'all'}-${Date.now()}`) // Unique channel name
       .on(
         'postgres_changes',
         {
@@ -47,15 +48,21 @@ export const useCustomers = () => {
           // Handle different event types for immediate UI updates
           if (payload.eventType === 'INSERT') {
             const newCustomer = payload.new as Customer;
-            if (newCustomer.user_id === currentUserId) {
+            if (newCustomer.user_id === currentUserId && 
+                (!businessType || newCustomer.business_type === businessType)) {
               setCustomers(prev => [...prev, newCustomer].sort((a, b) => a.name.localeCompare(b.name)));
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedCustomer = payload.new as Customer;
             if (updatedCustomer.user_id === currentUserId) {
-              setCustomers(prev => prev.map(customer => 
-                customer.id === updatedCustomer.id ? updatedCustomer : customer
-              ).sort((a, b) => a.name.localeCompare(b.name)));
+              setCustomers(prev => {
+                const filtered = prev.filter(customer => customer.id !== updatedCustomer.id);
+                // Only add back if it matches the business type filter
+                if (!businessType || updatedCustomer.business_type === businessType) {
+                  return [...filtered, updatedCustomer].sort((a, b) => a.name.localeCompare(b.name));
+                }
+                return filtered;
+              });
             }
           } else if (payload.eventType === 'DELETE') {
             const deletedCustomer = payload.old as Customer;
@@ -71,7 +78,7 @@ export const useCustomers = () => {
       console.log('Cleaning up customers subscription');
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [currentUserId, businessType]);
 
   const fetchCustomers = async () => {
     try {
@@ -83,11 +90,17 @@ export const useCustomers = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('customers')
         .select('*')
-        .eq('user_id', user.id)
-        .order('name');
+        .eq('user_id', user.id);
+
+      // Filter by business type if provided
+      if (businessType) {
+        query = query.eq('business_type', businessType);
+      }
+
+      const { data, error } = await query.order('name');
 
       if (error) throw error;
       setCustomers(data || []);
@@ -128,9 +141,6 @@ export const useCustomers = () => {
       if (error) throw error;
 
       // The real-time subscription will handle the UI update automatically
-      // But we can also manually add it for immediate feedback
-      setCustomers(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-      
       toast({
         title: "Berhasil",
         description: "Pelanggan berhasil ditambahkan",
@@ -158,10 +168,7 @@ export const useCustomers = () => {
 
       if (error) throw error;
 
-      setCustomers(prev => prev.map(customer => 
-        customer.id === id ? data : customer
-      ).sort((a, b) => a.name.localeCompare(b.name)));
-
+      // The real-time subscription will handle the UI update automatically
       toast({
         title: "Berhasil",
         description: "Data pelanggan berhasil diperbarui",
@@ -187,8 +194,7 @@ export const useCustomers = () => {
 
       if (error) throw error;
 
-      setCustomers(prev => prev.filter(customer => customer.id !== id));
-
+      // The real-time subscription will handle the UI update automatically
       toast({
         title: "Berhasil",
         description: "Pelanggan berhasil dihapus",

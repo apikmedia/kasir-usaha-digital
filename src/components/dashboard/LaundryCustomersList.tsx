@@ -8,7 +8,7 @@ import LaundryAddCustomerDialog from '@/components/LaundryAddCustomerDialog';
 import LaundryEditCustomerDialog from '@/components/LaundryEditCustomerDialog';
 
 const LaundryCustomersList = () => {
-  const { customers, loading, deleteCustomer } = useCustomers();
+  const { customers, loading, deleteCustomer } = useCustomers('laundry');
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus pelanggan "${name}"?`)) {
@@ -28,6 +28,10 @@ const LaundryCustomersList = () => {
       <CardContent>
         {loading ? (
           <div className="text-center py-4">Memuat data...</div>
+        ) : customers.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            Belum ada data pelanggan laundry
+          </div>
         ) : (
           <Table>
             <TableHeader>
