@@ -1,107 +1,12 @@
 
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
-import { useOrders } from '@/hooks/useOrders';
-import { useProducts } from '@/hooks/useProducts';
+import { ShoppingCart } from "lucide-react";
+import WarungCashier from './WarungCashier';
 import WarungProductsList from './WarungProductsList';
-
-interface CartItem {
-  product: any;
-  quantity: number;
-}
+import WarungOrdersHistory from './WarungOrdersHistory';
+import WarungReports from './WarungReports';
 
 const WarungDashboard = () => {
-  const { orders, loading: ordersLoading, createOrder } = useOrders('warung');
-  const { products, loading: productsLoading, updateStock } = useProducts();
-  const [cart, setCart] = useState<CartItem[]>([]);
-
-  const addToCart = (product: any) => {
-    if (product.stock <= 0) return; // Don't add if no stock
-    
-    const existingItem = cart.find(item => item.product.id === product.id);
-    if (existingItem) {
-      // Check if we can add more (don't exceed stock)
-      if (existingItem.quantity < product.stock) {
-        setCart(cart.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        ));
-      }
-    } else {
-      setCart([...cart, { product, quantity: 1 }]);
-    }
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.product.id !== productId));
-  };
-
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeFromCart(productId);
-    } else {
-      const product = products.find(p => p.id === productId);
-      if (product && newQuantity <= product.stock) {
-        setCart(cart.map(item =>
-          item.product.id === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        ));
-      }
-    }
-  };
-
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  };
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
-
-    const totalAmount = getTotalAmount();
-    const orderNotes = cart.map(item => 
-      `${item.product.name} x${item.quantity} = ${formatCurrency(item.product.price * item.quantity)}`
-    ).join(', ');
-
-    const success = await createOrder({
-      total_amount: totalAmount,
-      notes: orderNotes,
-      status: 'selesai',
-      payment_status: true
-    });
-
-    if (success) {
-      // Update stock for each product
-      for (const item of cart) {
-        await updateStock(item.product.id, item.product.stock - item.quantity);
-      }
-      setCart([]);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'selesai':
-        return <Badge variant="destructive">Selesai</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center space-x-2">
@@ -118,107 +23,7 @@ const WarungDashboard = () => {
         </TabsList>
 
         <TabsContent value="cashier" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Products for Cashier */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Produk</CardTitle>
-                  <CardDescription>Pilih produk untuk ditambahkan ke keranjang</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {productsLoading ? (
-                    <div className="text-center py-4">Memuat data...</div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {products.filter(p => p.stock > 0).map((product) => (
-                        <Card 
-                          key={product.id} 
-                          className="cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => addToCart(product)}
-                        >
-                          <CardContent className="p-4">
-                            <h3 className="font-semibold text-sm">{product.name}</h3>
-                            <p className="text-lg font-bold text-green-600">
-                              {formatCurrency(product.price)}
-                            </p>
-                            <p className="text-xs text-gray-500">Stok: {product.stock}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Cart */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Keranjang</CardTitle>
-                  <CardDescription>{cart.length} item</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {cart.length === 0 ? (
-                    <p className="text-center text-gray-500 py-4">Keranjang kosong</p>
-                  ) : (
-                    <>
-                      {cart.map((item) => (
-                        <div key={item.product.id} className="flex items-center justify-between space-x-2">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{item.product.name}</p>
-                            <p className="text-xs text-gray-500">{formatCurrency(item.product.price)}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="text-sm w-8 text-center">{item.quantity}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              disabled={item.quantity >= item.product.stock}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeFromCart(item.product.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      <div className="border-t pt-4">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold">Total:</span>
-                          <span className="text-lg font-bold text-green-600">
-                            {formatCurrency(getTotalAmount())}
-                          </span>
-                        </div>
-                        <Button 
-                          onClick={handleCheckout} 
-                          className="w-full mt-4"
-                          disabled={cart.length === 0}
-                        >
-                          Checkout
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          <WarungCashier />
         </TabsContent>
 
         <TabsContent value="products">
@@ -226,79 +31,11 @@ const WarungDashboard = () => {
         </TabsContent>
 
         <TabsContent value="orders">
-          <Card>
-            <CardHeader>
-              <CardTitle>Riwayat Transaksi</CardTitle>
-              <CardDescription>Daftar transaksi yang telah dilakukan</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {ordersLoading ? (
-                <div className="text-center py-4">Memuat data...</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>No. Transaksi</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                        <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <WarungOrdersHistory />
         </TabsContent>
 
         <TabsContent value="reports">
-          <Card>
-            <CardHeader>
-              <CardTitle>Laporan Harian</CardTitle>
-              <CardDescription>Ringkasan penjualan hari ini</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <h3 className="text-2xl font-bold text-green-600">
-                      {orders.filter(o => o.created_at.startsWith(new Date().toISOString().split('T')[0])).length}
-                    </h3>
-                    <p className="text-sm text-gray-600">Transaksi Hari Ini</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <h3 className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(
-                        orders
-                          .filter(o => o.created_at.startsWith(new Date().toISOString().split('T')[0]))
-                          .reduce((sum, o) => sum + o.total_amount, 0)
-                      )}
-                    </h3>
-                    <p className="text-sm text-gray-600">Pendapatan Hari Ini</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <h3 className="text-2xl font-bold text-purple-600">
-                      {products.reduce((sum, p) => sum + p.stock, 0)}
-                    </h3>
-                    <p className="text-sm text-gray-600">Total Stok</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
+          <WarungReports />
         </TabsContent>
       </Tabs>
     </div>
