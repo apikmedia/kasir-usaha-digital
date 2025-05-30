@@ -147,10 +147,70 @@ export const useCustomers = () => {
     }
   };
 
+  const updateCustomer = async (id: string, customerData: Partial<Omit<Customer, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .update(customerData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCustomers(prev => prev.map(customer => 
+        customer.id === id ? data : customer
+      ).sort((a, b) => a.name.localeCompare(b.name)));
+
+      toast({
+        title: "Berhasil",
+        description: "Data pelanggan berhasil diperbarui",
+      });
+      return data;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui data pelanggan",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteCustomer = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setCustomers(prev => prev.filter(customer => customer.id !== id));
+
+      toast({
+        title: "Berhasil",
+        description: "Pelanggan berhasil dihapus",
+      });
+      return true;
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast({
+        title: "Error",
+        description: "Gagal menghapus pelanggan",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     customers,
     loading,
     createCustomer,
+    updateCustomer,
+    deleteCustomer,
     refetch: fetchCustomers
   };
 };

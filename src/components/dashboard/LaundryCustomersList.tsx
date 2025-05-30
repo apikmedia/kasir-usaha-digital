@@ -1,11 +1,20 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useCustomers } from '@/hooks/useCustomers';
 import LaundryAddCustomerDialog from '@/components/LaundryAddCustomerDialog';
+import LaundryEditCustomerDialog from '@/components/LaundryEditCustomerDialog';
 
 const LaundryCustomersList = () => {
-  const { customers, loading } = useCustomers();
+  const { customers, loading, deleteCustomer } = useCustomers();
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus pelanggan "${name}"?`)) {
+      await deleteCustomer(id);
+    }
+  };
 
   return (
     <Card>
@@ -28,6 +37,7 @@ const LaundryCustomersList = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Alamat</TableHead>
                 <TableHead>Terdaftar</TableHead>
+                <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -38,6 +48,18 @@ const LaundryCustomersList = () => {
                   <TableCell>{customer.email || '-'}</TableCell>
                   <TableCell className="max-w-xs truncate">{customer.address || '-'}</TableCell>
                   <TableCell>{new Date(customer.created_at).toLocaleDateString('id-ID')}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-1">
+                      <LaundryEditCustomerDialog customer={customer} />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDelete(customer.id, customer.name)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

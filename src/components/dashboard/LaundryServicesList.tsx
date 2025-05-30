@@ -1,10 +1,13 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useServices } from '@/hooks/useServices';
 import LaundryAddServiceDialog from '@/components/LaundryAddServiceDialog';
+import LaundryEditServiceDialog from '@/components/LaundryEditServiceDialog';
 
 const LaundryServicesList = () => {
-  const { services, loading } = useServices('laundry');
+  const { services, loading, deleteService } = useServices('laundry');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -12,6 +15,12 @@ const LaundryServicesList = () => {
       currency: 'IDR',
       minimumFractionDigits: 0
     }).format(amount);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus layanan "${name}"?`)) {
+      await deleteService(id);
+    }
   };
 
   return (
@@ -31,7 +40,19 @@ const LaundryServicesList = () => {
             {services.map((service) => (
               <Card key={service.id}>
                 <CardContent className="p-4">
-                  <h3 className="font-semibold">{service.name}</h3>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold">{service.name}</h3>
+                    <div className="flex space-x-1">
+                      <LaundryEditServiceDialog service={service} />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDelete(service.id, service.name)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
                   <p className="text-sm text-gray-600 mb-2">{service.description}</p>
                   <p className="text-lg font-bold text-blue-600">
                     {formatCurrency(service.price)}/{service.unit}

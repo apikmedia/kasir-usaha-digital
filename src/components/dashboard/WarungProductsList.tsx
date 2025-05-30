@@ -2,11 +2,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useProducts } from '@/hooks/useProducts';
 import WarungAddProductDialog from '@/components/WarungAddProductDialog';
+import WarungEditProductDialog from '@/components/WarungEditProductDialog';
 
 const WarungProductsList = () => {
-  const { products, loading } = useProducts();
+  const { products, loading, deleteProduct } = useProducts();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -23,6 +26,12 @@ const WarungProductsList = () => {
       return <Badge variant="secondary">Sedikit</Badge>;
     } else {
       return <Badge variant="default">Tersedia</Badge>;
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus produk "${name}"?`)) {
+      await deleteProduct(id);
     }
   };
 
@@ -48,6 +57,7 @@ const WarungProductsList = () => {
                 <TableHead>Stok</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>SKU</TableHead>
+                <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -68,6 +78,18 @@ const WarungProductsList = () => {
                   <TableCell>{product.stock}</TableCell>
                   <TableCell>{getStockBadge(product.stock)}</TableCell>
                   <TableCell className="text-sm text-gray-500">{product.sku || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-1">
+                      <WarungEditProductDialog product={product} />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDelete(product.id, product.name)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
