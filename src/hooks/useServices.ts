@@ -22,25 +22,66 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
 
   useEffect(() => {
     fetchServices();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('services-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'services',
+          filter: `business_type=eq.${businessType}`
+        },
+        (payload) => {
+          console.log('Real-time services update:', payload);
+          fetchServices(); // Refresh data on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [businessType]);
 
   const fetchServices = async () => {
     try {
+      console.log('Fetching services for:', businessType);
       setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        toast({
+          title: "Error",
+          description: "User tidak ditemukan. Silakan login kembali.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('services')
         .select('*')
         .eq('business_type', businessType)
+        .eq('user_id', user.id)
         .eq('is_active', true)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching services:', error);
+        throw error;
+      }
+      
+      console.log('Fetched services:', data);
       setServices(data || []);
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error('Error in fetchServices:', error);
       toast({
         title: "Error",
-        description: "Gagal memuat data layanan",
+        description: "Gagal memuat data layanan: " + (error as Error).message,
         variant: "destructive",
       });
     } finally {
@@ -50,50 +91,55 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
 
   const createService = async (serviceData: Omit<Service, 'id' | 'business_type' | 'user_id'>) => {
     try {
+      console.log('Creating service with data:', serviceData);
+      
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         toast({
           title: "Error",
-          description: "User tidak ditemukan",
+          description: "User tidak ditemukan. Silakan login kembali.",
           variant: "destructive",
         });
         return false;
       }
 
+      const newService = {
+        ...serviceData,
+        business_type: businessType,
+        user_id: user.id
+      };
+
+      console.log('Inserting service:', newService);
+
       const { data, error } = await supabase
         .from('services')
-        .insert({
-          ...serviceData,
-          business_type: businessType,
-          user_id: user.id
-        })
+        .insert(newService)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating service:', error);
+        throw error;
+      }
 
-      // Update local state immediately for real-time effect
-      setServices(prev => {
-        const newServices = [...prev, data];
-        return newServices.sort((a, b) => a.name.localeCompare(b.name));
-      });
+      console.log('Service created successfully:', data);
       
       toast({
         title: "Berhasil",
         description: "Layanan berhasil ditambahkan",
       });
       
-      // Also refresh to ensure consistency
+      // Force immediate refresh
       await fetchServices();
       
       return data;
     } catch (error) {
-      console.error('Error creating service:', error);
+      console.error('Error in createService:', error);
       toast({
         title: "Error",
-        description: "Gagal menambahkan layanan",
+        description: "Gagal menambahkan layanan: " + (error as Error).message,
         variant: "destructive",
       });
       return false;

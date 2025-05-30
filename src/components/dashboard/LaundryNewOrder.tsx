@@ -38,6 +38,9 @@ const LaundryNewOrder = () => {
     try {
       setIsSubmitting(true);
       
+      console.log('Starting order creation process...');
+      console.log('Form data:', newOrder);
+      
       // Enhanced validation
       if (!newOrder.customer_name.trim()) {
         toast({
@@ -76,10 +79,14 @@ const LaundryNewOrder = () => {
         return;
       }
 
+      console.log('Selected service:', selectedService);
+
       const weightValue = parseFloat(newOrder.weight) || 0;
       const baseAmount = selectedService.price * weightValue;
       const deliveryFee = newOrder.pickup_delivery ? (parseFloat(newOrder.delivery_fee) || 0) : 0;
       const totalAmount = baseAmount + deliveryFee;
+
+      console.log('Calculated amounts:', { baseAmount, deliveryFee, totalAmount });
 
       // Create comprehensive order notes
       const orderNotes = [
@@ -92,21 +99,22 @@ const LaundryNewOrder = () => {
         newOrder.pickup_delivery && deliveryFee > 0 && `Biaya Antar: Rp ${new Intl.NumberFormat('id-ID').format(deliveryFee)}`
       ].filter(Boolean).join(', ');
       
-      console.log('Creating order with data:', {
-        customer_id: newOrder.customer_id || null,
-        total_amount: totalAmount,
-        notes: orderNotes,
-        status: 'antrian'
-      });
+      console.log('Order notes:', orderNotes);
 
-      const success = await createOrder({
+      const orderData = {
         customer_id: newOrder.customer_id || null,
         total_amount: totalAmount,
         notes: orderNotes,
-        status: 'antrian'
-      });
+        status: 'antrian' as const
+      };
+      
+      console.log('Final order data:', orderData);
+
+      const success = await createOrder(orderData);
 
       if (success) {
+        console.log('Order created successfully, resetting form...');
+        
         // Reset form
         setNewOrder({
           customer_id: '',
@@ -119,18 +127,13 @@ const LaundryNewOrder = () => {
           delivery_fee: ''
         });
         
-        toast({
-          title: "Berhasil",
-          description: "Pesanan berhasil dibuat",
-        });
-        
-        console.log('Order created successfully');
+        console.log('Form reset completed');
       }
     } catch (error) {
-      console.error('Error in handleCreateOrder:', error);
+      console.error('Unexpected error in handleCreateOrder:', error);
       toast({
         title: "Error",
-        description: "Gagal membuat pesanan. Silakan coba lagi.",
+        description: "Terjadi kesalahan tidak terduga. Silakan coba lagi.",
         variant: "destructive",
       });
     } finally {

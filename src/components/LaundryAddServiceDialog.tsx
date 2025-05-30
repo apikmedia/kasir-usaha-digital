@@ -20,32 +20,46 @@ const LaundryAddServiceDialog = () => {
     estimated_duration: '180'
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) return;
     
     if (!serviceData.name.trim()) {
       return;
     }
 
-    const result = await createService({
-      name: serviceData.name.trim(),
-      description: serviceData.description.trim(),
-      price: parseFloat(serviceData.price) || 0,
-      unit: serviceData.unit,
-      estimated_duration: parseInt(serviceData.estimated_duration) || 180,
-      is_active: true
-    });
+    try {
+      setIsSubmitting(true);
+      console.log('Submitting service data:', serviceData);
 
-    if (result) {
-      // Reset form data
-      setServiceData({
-        name: '',
-        description: '',
-        price: '',
-        unit: 'kg',
-        estimated_duration: '180'
+      const result = await createService({
+        name: serviceData.name.trim(),
+        description: serviceData.description.trim(),
+        price: parseFloat(serviceData.price) || 0,
+        unit: serviceData.unit,
+        estimated_duration: parseInt(serviceData.estimated_duration) || 180,
+        is_active: true
       });
-      setOpen(false);
+
+      if (result) {
+        console.log('Service created, resetting form...');
+        // Reset form data
+        setServiceData({
+          name: '',
+          description: '',
+          price: '',
+          unit: 'kg',
+          estimated_duration: '180'
+        });
+        setOpen(false);
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,8 +160,11 @@ const LaundryAddServiceDialog = () => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={!serviceData.name.trim() || !serviceData.price}>
-              Tambah Layanan
+            <Button 
+              type="submit" 
+              disabled={!serviceData.name.trim() || !serviceData.price || isSubmitting}
+            >
+              {isSubmitting ? 'Menambahkan...' : 'Tambah Layanan'}
             </Button>
           </div>
         </form>

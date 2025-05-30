@@ -26,24 +26,60 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
   useEffect(() => {
     fetchOrders();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `business_type=eq.${businessType}`
+        },
+        (payload) => {
+          console.log('Real-time orders update:', payload);
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [businessType]);
 
   const fetchOrders = async () => {
     try {
+      console.log('Fetching orders for:', businessType);
       setLoading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('orders')
         .select('*')
         .eq('business_type', businessType)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching orders:', error);
+        throw error;
+      }
+      
+      console.log('Fetched orders:', data);
       setOrders(data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Error in fetchOrders:', error);
       toast({
         title: "Error",
-        description: "Gagal memuat data pesanan",
+        description: "Gagal memuat data pesanan: " + (error as Error).message,
         variant: "destructive",
       });
     } finally {
@@ -53,11 +89,33 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
   const createOrder = async (orderData: Partial<Order>) => {
     try {
+      console.log('Creating order with data:', orderData);
+      
+      // Get current user first
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User tidak ditemukan. Silakan login kembali.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('Current user:', user.id);
+
       // Check daily limit first
+      console.log('Checking daily limit...');
       const { data: limitCheck, error: limitError } = await supabase
         .rpc('check_daily_limit');
 
-      if (limitError) throw limitError;
+      if (limitError) {
+        console.error('Error checking limit:', limitError);
+        throw limitError;
+      }
+      
+      console.log('Daily limit check result:', limitCheck);
       
       if (!limitCheck) {
         toast({
@@ -72,48 +130,59 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
       const businessPrefix = businessType === 'laundry' ? 'LDY' : 
                            businessType === 'warung' ? 'WRG' : 'CMT';
       
+      console.log('Generating order number with prefix:', businessPrefix);
+      
       const { data: orderNumber, error: orderNumberError } = await supabase
         .rpc('generate_order_number', { business_prefix: businessPrefix });
 
-      if (orderNumberError) throw orderNumberError;
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "User tidak ditemukan",
-          variant: "destructive",
-        });
-        return false;
+      if (orderNumberError) {
+        console.error('Error generating order number:', orderNumberError);
+        throw orderNumberError;
       }
+
+      console.log('Generated order number:', orderNumber);
+
+      const newOrder = {
+        order_number: orderNumber,
+        business_type: businessType,
+        user_id: user.id,
+        total_amount: orderData.total_amount || 0,
+        status: orderData.status || 'antrian',
+        payment_status: orderData.payment_status || false,
+        notes: orderData.notes || null,
+        customer_id: orderData.customer_id || null,
+        payment_method: orderData.payment_method || null
+      };
+
+      console.log('Inserting order:', newOrder);
 
       const { data, error } = await supabase
         .from('orders')
-        .insert({
-          ...orderData,
-          order_number: orderNumber,
-          business_type: businessType,
-          user_id: user.id,
-          total_amount: orderData.total_amount || 0
-        })
+        .insert(newOrder)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting order:', error);
+        throw error;
+      }
 
-      setOrders(prev => [data, ...prev]);
+      console.log('Order created successfully:', data);
+
       toast({
         title: "Berhasil",
-        description: "Pesanan berhasil dibuat",
+        description: "Pesanan berhasil dibuat dengan nomor: " + orderNumber,
       });
+      
+      // Force immediate refresh
+      await fetchOrders();
+      
       return true;
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Error in createOrder:', error);
       toast({
         title: "Error",
-        description: "Gagal membuat pesanan",
+        description: "Gagal membuat pesanan: " + (error as Error).message,
         variant: "destructive",
       });
       return false;
@@ -122,6 +191,8 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
   const updateOrderStatus = async (orderId: string, status: 'antrian' | 'proses' | 'selesai') => {
     try {
+      console.log('Updating order status:', orderId, status);
+      
       const updateData: any = { status };
       if (status === 'selesai') {
         updateData.finished_at = new Date().toISOString();
@@ -132,7 +203,10 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
         .update(updateData)
         .eq('id', orderId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating order status:', error);
+        throw error;
+      }
 
       setOrders(prev => prev.map(order => 
         order.id === orderId 
@@ -145,10 +219,10 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
         description: "Status pesanan berhasil diperbarui",
       });
     } catch (error) {
-      console.error('Error updating order status:', error);
+      console.error('Error in updateOrderStatus:', error);
       toast({
         title: "Error",
-        description: "Gagal memperbarui status pesanan",
+        description: "Gagal memperbarui status pesanan: " + (error as Error).message,
         variant: "destructive",
       });
     }
