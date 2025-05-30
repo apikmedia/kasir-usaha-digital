@@ -6,21 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit } from "lucide-react";
-import { useProducts } from '@/hooks/useProducts';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  stock: number;
-  category?: string;
-  sku?: string;
-  is_active: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-}
+import { useProducts, Product } from '@/hooks/useProducts';
 
 interface WarungEditProductDialogProps {
   product: Product;

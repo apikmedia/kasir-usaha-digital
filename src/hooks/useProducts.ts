@@ -89,6 +89,63 @@ export const useProducts = () => {
     }
   };
 
+  const updateProduct = async (productId: string, productData: Omit<Product, 'id' | 'user_id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', productId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProducts(prev => prev.map(product => 
+        product.id === productId ? data : product
+      ));
+
+      toast({
+        title: "Berhasil",
+        description: "Produk berhasil diperbarui",
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui produk",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      setProducts(prev => prev.filter(product => product.id !== productId));
+      toast({
+        title: "Berhasil",
+        description: "Produk berhasil dihapus",
+      });
+      return true;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Gagal menghapus produk",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const updateStock = async (productId: string, newStock: number) => {
     try {
       const { error } = await supabase
@@ -117,6 +174,8 @@ export const useProducts = () => {
     products,
     loading,
     createProduct,
+    updateProduct,
+    deleteProduct,
     updateStock,
     refetch: fetchProducts
   };
