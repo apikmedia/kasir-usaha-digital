@@ -33,12 +33,25 @@ export const useCustomerData = (businessType?: BusinessType) => {
 
       if (error) throw error;
       
-      // Properly type the data and filter out any invalid business_types
-      const validCustomers = (data || []).filter((customer): customer is Customer => {
-        return customer.business_type === 'laundry' || 
-               customer.business_type === 'warung' || 
-               customer.business_type === 'cuci_motor';
-      });
+      // Map Supabase data to Customer interface with proper type validation
+      const validCustomers: Customer[] = (data || [])
+        .filter((item) => {
+          return item.business_type === 'laundry' || 
+                 item.business_type === 'warung' || 
+                 item.business_type === 'cuci_motor';
+        })
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          phone: item.phone || undefined,
+          email: item.email || undefined,
+          address: item.address || undefined,
+          notes: item.notes || undefined,
+          business_type: item.business_type as BusinessType,
+          user_id: item.user_id,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
       
       setCustomers(validCustomers);
     } catch (error) {
