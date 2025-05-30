@@ -32,7 +32,8 @@ export const useCustomerData = (businessType?: BusinessType) => {
       const { data, error } = await query.order('name');
 
       if (error) throw error;
-      setCustomers(data || []);
+      // Properly type the data as Customer array
+      setCustomers((data as Customer[]) || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
       toast({
