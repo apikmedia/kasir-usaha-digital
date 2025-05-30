@@ -23,7 +23,8 @@ export const useOrders = (businessType: BusinessType) => {
   const createOrder = async (orderData: Partial<Order>) => {
     const result = await createOrderOperation(businessType, orderData);
     
-    if (result && typeof result === 'object' && result.success && result.data) {
+    // Fix type checking: ensure result is not false and has the expected properties
+    if (result && typeof result === 'object' && 'success' in result && result.success && 'data' in result && result.data) {
       addOrder(result.data);
       return true;
     }
@@ -34,7 +35,8 @@ export const useOrders = (businessType: BusinessType) => {
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const result = await updateOrderStatusOperation(orderId, status);
     
-    if (result && typeof result === 'object' && result.success && result.updateData) {
+    // Fix type checking: ensure result is not false and has the expected properties
+    if (result && typeof result === 'object' && 'success' in result && result.success && 'updateData' in result && result.updateData) {
       updateOrderInState(orderId, result.updateData);
     }
   };
