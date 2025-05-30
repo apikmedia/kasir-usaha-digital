@@ -28,58 +28,106 @@ const LaundryNewOrder = () => {
     delivery_fee: ''
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleCreateOrder = async () => {
-    const selectedService = services.find(s => s.id === newOrder.service_id);
-    if (!selectedService) return;
-
-    const baseAmount = selectedService.price * parseFloat(newOrder.weight || '0');
-    const deliveryFee = newOrder.pickup_delivery ? parseFloat(newOrder.delivery_fee || '0') : 0;
-    const totalAmount = baseAmount + deliveryFee;
-
-    const orderNotes = [
-      `Pelanggan: ${newOrder.customer_name}`,
-      `Berat: ${newOrder.weight}kg`,
-      newOrder.notes && `Catatan: ${newOrder.notes}`,
-      newOrder.pickup_delivery && `Antar Jemput: ${newOrder.delivery_address}`,
-      newOrder.pickup_delivery && `Biaya Antar: Rp ${new Intl.NumberFormat('id-ID').format(deliveryFee)}`
-    ].filter(Boolean).join(', ');
+    if (isSubmitting) return;
     
-    const success = await createOrder({
-      customer_id: newOrder.customer_id || null,
-      total_amount: totalAmount,
-      notes: orderNotes,
-      status: 'antrian'
-    });
+    try {
+      setIsSubmitting(true);
+      
+      // Validasi input
+      if (!newOrder.customer_name.trim()) {
+        console.error('Nama pelanggan harus diisi');
+        return;
+      }
 
-    if (success) {
-      setNewOrder({
-        customer_id: '',
-        customer_name: '',
-        weight: '',
-        service_id: '',
-        notes: '',
-        pickup_delivery: false,
-        delivery_address: '',
-        delivery_fee: ''
+      if (!newOrder.weight || parseFloat(newOrder.weight) <= 0) {
+        console.error('Berat harus diisi dan lebih dari 0');
+        return;
+      }
+
+      if (!newOrder.service_id) {
+        console.error('Layanan harus dipilih');
+        return;
+      }
+
+      const selectedService = services.find(s => s.id === newOrder.service_id);
+      if (!selectedService) {
+        console.error('Layanan tidak ditemukan');
+        return;
+      }
+
+      const weightValue = parseFloat(newOrder.weight) || 0;
+      const baseAmount = selectedService.price * weightValue;
+      const deliveryFee = newOrder.pickup_delivery ? (parseFloat(newOrder.delivery_fee) || 0) : 0;
+      const totalAmount = baseAmount + deliveryFee;
+
+      // Create order notes
+      const orderNotes = [
+        `Pelanggan: ${newOrder.customer_name.trim()}`,
+        `Layanan: ${selectedService.name}`,
+        `Berat: ${weightValue}kg`,
+        `Harga: Rp ${new Intl.NumberFormat('id-ID').format(baseAmount)}`,
+        newOrder.notes.trim() && `Catatan: ${newOrder.notes.trim()}`,
+        newOrder.pickup_delivery && `Antar Jemput: ${newOrder.delivery_address.trim()}`,
+        newOrder.pickup_delivery && deliveryFee > 0 && `Biaya Antar: Rp ${new Intl.NumberFormat('id-ID').format(deliveryFee)}`
+      ].filter(Boolean).join(', ');
+      
+      console.log('Creating order with data:', {
+        customer_id: newOrder.customer_id || null,
+        total_amount: totalAmount,
+        notes: orderNotes,
+        status: 'antrian'
       });
+
+      const success = await createOrder({
+        customer_id: newOrder.customer_id || null,
+        total_amount: totalAmount,
+        notes: orderNotes,
+        status: 'antrian'
+      });
+
+      if (success) {
+        // Reset form
+        setNewOrder({
+          customer_id: '',
+          customer_name: '',
+          weight: '',
+          service_id: '',
+          notes: '',
+          pickup_delivery: false,
+          delivery_address: '',
+          delivery_fee: ''
+        });
+        console.log('Order created successfully');
+      }
+    } catch (error) {
+      console.error('Error in handleCreateOrder:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleCustomerSelect = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
-    setNewOrder({
-      ...newOrder,
-      customer_id: customerId,
-      customer_name: customer?.name || ''
-    });
+    if (customer) {
+      setNewOrder({
+        ...newOrder,
+        customer_id: customerId,
+        customer_name: customer.name
+      });
+    }
   };
 
   const handleCustomerAdded = (customer: any) => {
-    setNewOrder({
-      ...newOrder,
-      customer_id: customer.id,
-      customer_name: customer.name
-    });
+    if (customer && customer.id && customer.name) {
+      setNewOrder({
+        ...newOrder,
+        customer_id: customer.id,
+        customer_name: customer.name
+      });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -88,6 +136,26 @@ const LaundryNewOrder = () => {
       currency: 'IDR',
       minimumFractionDigits: 0
     }).format(amount);
+  };
+
+  const calculateTotal = () => {
+    const selectedService = services.find(s => s.id === newOrder.service_id);
+    if (!selectedService || !newOrder.weight) return 0;
+
+    const weightValue = parseFloat(newOrder.weight) || 0;
+    const baseAmount = selectedService.price * weightValue;
+    const deliveryFee = newOrder.pickup_delivery ? (parseFloat(newOrder.delivery_fee) || 0) : 0;
+    return baseAmount + deliveryFee;
+  };
+
+  const isFormValid = () => {
+    return (
+      newOrder.customer_name.trim() &&
+      newOrder.weight &&
+      parseFloat(newOrder.weight) > 0 &&
+      newOrder.service_id &&
+      !isSubmitting
+    );
   };
 
   return (
@@ -125,6 +193,7 @@ const LaundryNewOrder = () => {
               placeholder="Atau ketik nama langsung"
               value={newOrder.customer_name}
               onChange={(e) => setNewOrder({ ...newOrder, customer_name: e.target.value })}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -133,9 +202,11 @@ const LaundryNewOrder = () => {
               id="weight"
               type="number"
               step="0.1"
+              min="0.1"
               value={newOrder.weight}
               onChange={(e) => setNewOrder({ ...newOrder, weight: e.target.value })}
               placeholder="0.0"
+              required
             />
           </div>
         </div>
@@ -162,13 +233,14 @@ const LaundryNewOrder = () => {
         <div className="space-y-2">
           <Label>Antar Jemput</Label>
           <div className="flex items-center space-x-2">
-            <Input
+            <input
               id="pickup"
               type="checkbox"
               checked={newOrder.pickup_delivery}
               onChange={(e) => setNewOrder({ ...newOrder, pickup_delivery: e.target.checked })}
+              className="h-4 w-4"
             />
-            <Label htmlFor="pickup">Aktifkan</Label>
+            <Label htmlFor="pickup">Aktifkan layanan antar jemput</Label>
           </div>
         </div>
 
@@ -189,6 +261,7 @@ const LaundryNewOrder = () => {
                 id="delivery_fee"
                 type="number"
                 step="1000"
+                min="0"
                 value={newOrder.delivery_fee}
                 onChange={(e) => setNewOrder({ ...newOrder, delivery_fee: e.target.value })}
                 placeholder="0"
@@ -207,13 +280,21 @@ const LaundryNewOrder = () => {
           />
         </div>
 
+        {calculateTotal() > 0 && (
+          <div className="p-3 bg-gray-50 rounded-md">
+            <div className="text-sm text-gray-600">
+              <p>Total Estimasi: <span className="font-semibold text-lg text-blue-600">{formatCurrency(calculateTotal())}</span></p>
+            </div>
+          </div>
+        )}
+
         <Button 
           onClick={handleCreateOrder} 
           className="w-full"
-          disabled={!newOrder.customer_name || !newOrder.weight || !newOrder.service_id}
+          disabled={!isFormValid()}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Buat Pesanan
+          {isSubmitting ? 'Membuat Pesanan...' : 'Buat Pesanan'}
         </Button>
       </CardContent>
     </Card>

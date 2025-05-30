@@ -27,7 +27,17 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const result = await createCustomer(customerData);
+    if (!customerData.name.trim()) {
+      return;
+    }
+
+    const result = await createCustomer({
+      name: customerData.name.trim(),
+      phone: customerData.phone.trim() || undefined,
+      email: customerData.email.trim() || undefined,
+      address: customerData.address.trim() || undefined,
+      notes: customerData.notes.trim() || undefined
+    });
 
     if (result) {
       setCustomerData({
@@ -38,6 +48,7 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
         notes: ''
       });
       setOpen(false);
+      
       if (onCustomerAdded) {
         onCustomerAdded(result);
       }
@@ -69,7 +80,7 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="customer-name">Nama Pelanggan</Label>
+            <Label htmlFor="customer-name">Nama Pelanggan <span className="text-red-500">*</span></Label>
             <Input
               id="customer-name"
               value={customerData.name}
@@ -127,7 +138,7 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={!customerData.name}>
+            <Button type="submit" disabled={!customerData.name.trim()}>
               Tambah Pelanggan
             </Button>
           </div>

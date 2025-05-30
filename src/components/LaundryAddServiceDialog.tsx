@@ -17,22 +17,27 @@ const LaundryAddServiceDialog = () => {
     description: '',
     price: '',
     unit: 'kg',
-    estimated_duration: '180' // 3 hours in minutes
+    estimated_duration: '180'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const success = await createService({
-      name: serviceData.name,
-      description: serviceData.description,
-      price: parseFloat(serviceData.price),
+    if (!serviceData.name.trim()) {
+      return;
+    }
+
+    const result = await createService({
+      name: serviceData.name.trim(),
+      description: serviceData.description.trim(),
+      price: parseFloat(serviceData.price) || 0,
       unit: serviceData.unit,
-      estimated_duration: parseInt(serviceData.estimated_duration),
+      estimated_duration: parseInt(serviceData.estimated_duration) || 180,
       is_active: true
     });
 
-    if (success) {
+    if (result) {
+      // Reset form data
       setServiceData({
         name: '',
         description: '',
@@ -89,6 +94,7 @@ const LaundryAddServiceDialog = () => {
                 id="price"
                 type="number"
                 step="0.01"
+                min="0"
                 value={serviceData.price}
                 onChange={(e) => setServiceData({ ...serviceData, price: e.target.value })}
                 placeholder="0"
@@ -140,7 +146,7 @@ const LaundryAddServiceDialog = () => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={!serviceData.name || !serviceData.price}>
+            <Button type="submit" disabled={!serviceData.name.trim() || !serviceData.price}>
               Tambah Layanan
             </Button>
           </div>

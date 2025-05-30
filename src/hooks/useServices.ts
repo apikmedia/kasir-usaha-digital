@@ -74,12 +74,14 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
 
       if (error) throw error;
 
+      // Update local state immediately for auto-refresh
       setServices(prev => [...prev, data]);
+      
       toast({
         title: "Berhasil",
         description: "Layanan berhasil ditambahkan",
       });
-      return true;
+      return data;
     } catch (error) {
       console.error('Error creating service:', error);
       toast({
