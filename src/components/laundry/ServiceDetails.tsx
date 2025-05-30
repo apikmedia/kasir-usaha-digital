@@ -1,8 +1,7 @@
-
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { LaundryOrderFormData } from './types';
-import type { Service } from '@/hooks/useServices';
+import type { Service } from '@/hooks/services/types';
 
 interface ServiceDetailsProps {
   orderData: LaundryOrderFormData;
