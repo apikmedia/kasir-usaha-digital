@@ -12,6 +12,7 @@ export interface Product {
   category?: string;
   sku?: string;
   is_active: boolean;
+  user_id: string;
 }
 
 export const useProducts = () => {
@@ -46,7 +47,7 @@ export const useProducts = () => {
     }
   };
 
-  const createProduct = async (productData: Omit<Product, 'id'>) => {
+  const createProduct = async (productData: Omit<Product, 'id' | 'user_id'>) => {
     try {
       const { data, error } = await supabase
         .from('products')

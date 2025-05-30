@@ -16,6 +16,7 @@ export interface Order {
   finished_at?: string;
   created_at: string;
   customer_id?: string;
+  user_id: string;
 }
 
 export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => {

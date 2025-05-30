@@ -9,6 +9,204 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          order_id: string
+          price: number
+          product_id: string | null
+          quantity: number
+          service_id: string | null
+          subtotal: number
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          order_id: string
+          price: number
+          product_id?: string | null
+          quantity: number
+          service_id?: string | null
+          subtotal: number
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          order_id?: string
+          price?: number
+          product_id?: string | null
+          quantity?: number
+          service_id?: string | null
+          subtotal?: number
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string
+          customer_id: string | null
+          estimated_finish: string | null
+          finished_at: string | null
+          id: string
+          notes: string | null
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_status: boolean | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          customer_id?: string | null
+          estimated_finish?: string | null
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          order_number: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_status?: boolean | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          customer_id?: string | null
+          estimated_finish?: string | null
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_status?: boolean | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          sku: string | null
+          stock: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price: number
+          sku?: string | null
+          stock?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          sku?: string | null
+          stock?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_type: string | null
@@ -36,15 +234,98 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string
+          description: string | null
+          estimated_duration: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price: number
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          transaction_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          transaction_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          transaction_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_daily_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      generate_order_number: {
+        Args: { business_prefix: string }
+        Returns: string
+      }
+      increment_daily_count: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      business_type: "laundry" | "warung" | "cuci_motor"
+      order_status: "antrian" | "proses" | "selesai"
+      payment_method: "cash" | "transfer"
+      subscription_plan: "basic" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -159,6 +440,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      business_type: ["laundry", "warung", "cuci_motor"],
+      order_status: ["antrian", "proses", "selesai"],
+      payment_method: ["cash", "transfer"],
+      subscription_plan: ["basic", "premium"],
+    },
   },
 } as const

@@ -12,6 +12,7 @@ export interface Service {
   unit?: string;
   estimated_duration?: number;
   is_active: boolean;
+  user_id: string;
 }
 
 export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') => {
@@ -47,7 +48,7 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
     }
   };
 
-  const createService = async (serviceData: Omit<Service, 'id' | 'business_type'>) => {
+  const createService = async (serviceData: Omit<Service, 'id' | 'business_type' | 'user_id'>) => {
     try {
       const { data, error } = await supabase
         .from('services')
