@@ -12,6 +12,7 @@ export interface Order {
   finished_at?: string;
   created_at: string;
   customer_id?: string;
+  customer_name?: string;
   user_id: string;
 }
 
