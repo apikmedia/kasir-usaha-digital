@@ -32,8 +32,15 @@ export const useCustomerData = (businessType?: BusinessType) => {
       const { data, error } = await query.order('name');
 
       if (error) throw error;
-      // Properly type the data as Customer array
-      setCustomers((data as Customer[]) || []);
+      
+      // Properly type the data and filter out any invalid business_types
+      const validCustomers = (data || []).filter((customer): customer is Customer => {
+        return customer.business_type === 'laundry' || 
+               customer.business_type === 'warung' || 
+               customer.business_type === 'cuci_motor';
+      });
+      
+      setCustomers(validCustomers);
     } catch (error) {
       console.error('Error fetching customers:', error);
       toast({
