@@ -50,12 +50,25 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
 
   const createService = async (serviceData: Omit<Service, 'id' | 'business_type' | 'user_id'>) => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User tidak ditemukan",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { data, error } = await supabase
         .from('services')
-        .insert([{
+        .insert({
           ...serviceData,
-          business_type: businessType
-        }])
+          business_type: businessType,
+          user_id: user.id
+        })
         .select()
         .single();
 

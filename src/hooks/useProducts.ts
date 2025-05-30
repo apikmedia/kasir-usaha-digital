@@ -49,9 +49,24 @@ export const useProducts = () => {
 
   const createProduct = async (productData: Omit<Product, 'id' | 'user_id'>) => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User tidak ditemukan",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { data, error } = await supabase
         .from('products')
-        .insert([productData])
+        .insert({
+          ...productData,
+          user_id: user.id
+        })
         .select()
         .single();
 

@@ -77,13 +77,27 @@ export const useOrders = (businessType: 'laundry' | 'warung' | 'cuci_motor') => 
 
       if (orderNumberError) throw orderNumberError;
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User tidak ditemukan",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { data, error } = await supabase
         .from('orders')
-        .insert([{
+        .insert({
           ...orderData,
           order_number: orderNumber,
-          business_type: businessType
-        }])
+          business_type: businessType,
+          user_id: user.id,
+          total_amount: orderData.total_amount || 0
+        })
         .select()
         .single();
 
