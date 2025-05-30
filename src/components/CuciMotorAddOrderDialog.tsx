@@ -14,8 +14,9 @@ import { useCustomers } from '@/hooks/useCustomers';
 const CuciMotorAddOrderDialog = () => {
   const { createOrder } = useOrders('cuci_motor');
   const { services } = useServices('cuci_motor');
-  const { customers } = useCustomers();
+  const { customers } = useCustomers('cuci_motor');
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     customer_id: '',
     customer_name: '',
@@ -28,39 +29,60 @@ const CuciMotorAddOrderDialog = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const selectedService = services.find(s => s.id === formData.service_id);
-    if (!selectedService) return;
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      if (!formData.customer_name.trim()) {
+        alert('Nama customer harus diisi');
+        return;
+      }
+      
+      if (!formData.motor_type.trim()) {
+        alert('Jenis motor harus diisi');
+        return;
+      }
+      
+      if (!formData.service_id) {
+        alert('Layanan harus dipilih');
+        return;
+      }
+      
+      const selectedService = services.find(s => s.id === formData.service_id);
+      if (!selectedService) {
+        alert('Layanan tidak ditemukan');
+        return;
+      }
 
-    const orderData = {
-      business_type: 'cuci_motor' as const,
-      customer_id: formData.customer_id || undefined,
-      customer_name: formData.customer_name,
-      total_amount: selectedService.price,
-      notes: `${formData.motor_type}${formData.license_plate ? ` - ${formData.license_plate}` : ''}${formData.notes ? ` | ${formData.notes}` : ''}`,
-      status: 'antrian' as const,
-      order_items: [
-        {
-          service_id: selectedService.id,
-          name: selectedService.name,
-          price: selectedService.price,
-          quantity: 1,
-          subtotal: selectedService.price,
-          unit: selectedService.unit || 'unit'
-        }
-      ]
-    };
+      const orderData = {
+        customer_id: formData.customer_id || undefined,
+        total_amount: selectedService.price,
+        notes: `${formData.motor_type}${formData.license_plate ? ` - ${formData.license_plate}` : ''}${formData.notes ? ` | ${formData.notes}` : ''}`,
+        status: 'antrian' as const,
+        payment_status: false
+      };
 
-    const success = await createOrder(orderData);
-    if (success) {
-      setOpen(false);
-      setFormData({
-        customer_id: '',
-        customer_name: '',
-        service_id: '',
-        notes: '',
-        motor_type: '',
-        license_plate: ''
-      });
+      console.log('Creating order with data:', orderData);
+
+      const success = await createOrder(orderData);
+      
+      if (success) {
+        setOpen(false);
+        setFormData({
+          customer_id: '',
+          customer_name: '',
+          service_id: '',
+          notes: '',
+          motor_type: '',
+          license_plate: ''
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      alert('Terjadi kesalahan saat membuat pesanan');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -171,8 +193,8 @@ const CuciMotorAddOrderDialog = () => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <Button type="submit">
-              Tambah Pesanan
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Memproses...' : 'Tambah Pesanan'}
             </Button>
           </div>
         </form>

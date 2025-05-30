@@ -21,59 +21,6 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Get current user ID first
-    const initializeUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-    };
-    
-    initializeUser();
-    fetchServices();
-    
-    // Set up real-time subscription with better channel management
-    const channel = supabase
-      .channel(`services-${businessType}-${Date.now()}`) // Unique channel name
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'services',
-          filter: `business_type=eq.${businessType}`
-        },
-        (payload) => {
-          console.log('Real-time services update:', payload);
-          
-          // Handle different event types for immediate UI updates
-          if (payload.eventType === 'INSERT') {
-            const newService = payload.new as Service;
-            if (newService.user_id === currentUserId) {
-              setServices(prev => [...prev, newService]);
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedService = payload.new as Service;
-            if (updatedService.user_id === currentUserId) {
-              setServices(prev => prev.map(service => 
-                service.id === updatedService.id ? updatedService : service
-              ));
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const deletedService = payload.old as Service;
-            setServices(prev => prev.filter(service => service.id !== deletedService.id));
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Services subscription status:', status);
-      });
-
-    return () => {
-      console.log('Cleaning up services subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [businessType, currentUserId]);
-
   const fetchServices = async () => {
     try {
       console.log('Fetching services for:', businessType);
@@ -117,6 +64,70 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
     }
   };
 
+  const addService = (newService: Service) => {
+    setServices(prev => [...prev, newService].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const updateServiceInState = (updatedService: Service) => {
+    setServices(prev => prev.map(service => 
+      service.id === updatedService.id ? updatedService : service
+    ).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const removeService = (serviceId: string) => {
+    setServices(prev => prev.filter(service => service.id !== serviceId));
+  };
+
+  useEffect(() => {
+    // Get current user ID first
+    const initializeUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    
+    initializeUser();
+    fetchServices();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel(`services-${businessType}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'services',
+          filter: `business_type=eq.${businessType}`
+        },
+        (payload) => {
+          console.log('Real-time services update:', payload);
+          
+          // Only process changes for the current user
+          const serviceData = payload.new || payload.old;
+          if (serviceData && serviceData.user_id === currentUserId) {
+            if (payload.eventType === 'INSERT') {
+              const newService = payload.new as Service;
+              addService(newService);
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedService = payload.new as Service;
+              updateServiceInState(updatedService);
+            } else if (payload.eventType === 'DELETE') {
+              const deletedService = payload.old as Service;
+              removeService(deletedService.id);
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Services subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up services subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [businessType, currentUserId]);
+
   const createService = async (serviceData: Omit<Service, 'id' | 'business_type' | 'user_id'>) => {
     try {
       console.log('Creating service with data:', serviceData);
@@ -158,9 +169,8 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
         description: "Layanan berhasil ditambahkan",
       });
       
-      // The real-time subscription will handle the UI update automatically
-      // But we can also manually add it for immediate feedback
-      setServices(prev => [...prev, data]);
+      // Immediately add to local state for instant UI update
+      addService(data);
       
       return data;
     } catch (error) {
@@ -185,9 +195,8 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
 
       if (error) throw error;
 
-      setServices(prev => prev.map(service => 
-        service.id === id ? data : service
-      ));
+      // Immediately update local state
+      updateServiceInState(data);
 
       toast({
         title: "Berhasil",
@@ -214,7 +223,8 @@ export const useServices = (businessType: 'laundry' | 'warung' | 'cuci_motor') =
 
       if (error) throw error;
 
-      setServices(prev => prev.filter(service => service.id !== id));
+      // Immediately remove from local state
+      removeService(id);
 
       toast({
         title: "Berhasil",

@@ -65,6 +65,20 @@ export const useCustomerData = (businessType?: BusinessType) => {
     }
   };
 
+  const addCustomer = (newCustomer: Customer) => {
+    setCustomers(prev => [...prev, newCustomer].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const updateCustomer = (updatedCustomer: Customer) => {
+    setCustomers(prev => prev.map(customer => 
+      customer.id === updatedCustomer.id ? updatedCustomer : customer
+    ).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const removeCustomer = (customerId: string) => {
+    setCustomers(prev => prev.filter(customer => customer.id !== customerId));
+  };
+
   useEffect(() => {
     const initializeUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -80,6 +94,9 @@ export const useCustomerData = (businessType?: BusinessType) => {
     setCustomers,
     loading,
     currentUserId,
-    fetchCustomers
+    fetchCustomers,
+    addCustomer,
+    updateCustomer,
+    removeCustomer
   };
 };

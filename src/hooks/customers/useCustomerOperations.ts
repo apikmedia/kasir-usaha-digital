@@ -34,6 +34,8 @@ export const useCustomerOperations = () => {
         title: "Berhasil",
         description: "Pelanggan berhasil ditambahkan",
       });
+      
+      // Return the created customer data for immediate UI update
       return data;
     } catch (error) {
       console.error('Error creating customer:', error);
@@ -61,6 +63,7 @@ export const useCustomerOperations = () => {
         title: "Berhasil",
         description: "Data pelanggan berhasil diperbarui",
       });
+      
       return data;
     } catch (error) {
       console.error('Error updating customer:', error);
