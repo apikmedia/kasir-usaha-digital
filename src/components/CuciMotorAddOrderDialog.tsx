@@ -12,6 +12,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { BusinessType, OrderStatus } from '@/types/order';
 
 const CuciMotorAddOrderDialog = () => {
   const { services } = useServices('cuci_motor');
@@ -55,14 +56,17 @@ const CuciMotorAddOrderDialog = () => {
         throw new Error('Gagal membuat nomor pesanan');
       }
 
+      const businessType: BusinessType = 'cuci_motor';
+      const orderStatus: OrderStatus = 'antrian';
+
       const orderData = {
         order_number: orderNumber,
-        business_type: 'cuci_motor',
+        business_type: businessType,
         user_id: user.id,
         customer_id: formData.customer_id || null,
         total_amount: selectedService.price,
         notes: `${formData.motor_type}${formData.license_plate ? ` - ${formData.license_plate}` : ''}${formData.notes ? ` | ${formData.notes}` : ''}`,
-        status: 'antrian',
+        status: orderStatus,
         payment_status: false
       };
 

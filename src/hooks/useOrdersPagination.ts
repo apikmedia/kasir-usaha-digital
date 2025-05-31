@@ -36,10 +36,10 @@ export const useOrdersPagination = ({ businessType, page, pageSize }: UseOrdersP
 
     if (countError) throw countError;
 
-    // Get paginated data
+    // Get paginated data with all required fields
     const { data, error } = await supabase
       .from('orders')
-      .select('id, order_number, status, total_amount, created_at, finished_at, notes, customer_id, payment_status')
+      .select('id, order_number, business_type, status, total_amount, created_at, finished_at, notes, customer_id, payment_status, user_id, payment_method, estimated_finish')
       .eq('business_type', businessType)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
