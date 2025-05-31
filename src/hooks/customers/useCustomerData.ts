@@ -43,7 +43,8 @@ export const useCustomerData = (businessType?: BusinessType) => {
 
     console.log('Setting up customer real-time subscription for business type:', businessType, 'user:', currentUserId);
 
-    const channelName = `customers-realtime-${businessType || 'all'}-${currentUserId}-${Date.now()}`;
+    // Create a unique channel name
+    const channelName = `customers-realtime-${currentUserId}-${businessType || 'all'}`;
     
     const channel = supabase
       .channel(channelName)
@@ -91,15 +92,16 @@ export const useCustomerData = (businessType?: BusinessType) => {
       )
       .subscribe((status) => {
         console.log('Customer subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to customer changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to customer changes');
+        }
       });
 
     return () => {
-      console.log('Cleaning up customer subscription');
-      try {
-        supabase.removeChannel(channel);
-      } catch (error) {
-        console.error('Error cleaning up customer subscription:', error);
-      }
+      console.log('Cleaning up customer subscription:', channelName);
+      supabase.removeChannel(channel);
     };
   }, [currentUserId, businessType, addCustomer, updateCustomer, removeCustomer]);
 

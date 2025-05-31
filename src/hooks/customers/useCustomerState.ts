@@ -8,6 +8,7 @@ export const useCustomerState = () => {
 
   const addCustomer = (newCustomer: any) => {
     console.log('Adding customer to state:', newCustomer);
+    
     // Type-cast the customer data to ensure proper typing
     const typedCustomer: Customer = {
       id: newCustomer.id,
@@ -23,19 +24,22 @@ export const useCustomerState = () => {
     };
     
     setCustomers(prev => {
+      // Check if customer already exists to prevent duplicates
       const exists = prev.find(c => c.id === typedCustomer.id);
       if (exists) {
-        console.log('Customer already exists, skipping add');
+        console.log('Customer already exists, skipping add to prevent duplicate');
         return prev;
       }
+      
       const updated = [...prev, typedCustomer].sort((a, b) => a.name.localeCompare(b.name));
-      console.log('Updated customers after add:', updated);
+      console.log('Updated customers after add:', updated.length, 'total customers');
       return updated;
     });
   };
 
   const updateCustomer = (updatedCustomer: any) => {
     console.log('Updating customer in state:', updatedCustomer);
+    
     // Type-cast the customer data to ensure proper typing
     const typedCustomer: Customer = {
       id: updatedCustomer.id,
@@ -51,10 +55,17 @@ export const useCustomerState = () => {
     };
     
     setCustomers(prev => {
+      const customerIndex = prev.findIndex(customer => customer.id === typedCustomer.id);
+      if (customerIndex === -1) {
+        console.log('Customer not found for update, skipping');
+        return prev;
+      }
+      
       const updated = prev.map(customer => 
         customer.id === typedCustomer.id ? typedCustomer : customer
       ).sort((a, b) => a.name.localeCompare(b.name));
-      console.log('Updated customers after update:', updated);
+      
+      console.log('Updated customers after update:', updated.length, 'total customers');
       return updated;
     });
   };
@@ -63,7 +74,7 @@ export const useCustomerState = () => {
     console.log('Removing customer from state:', customerId);
     setCustomers(prev => {
       const updated = prev.filter(customer => customer.id !== customerId);
-      console.log('Updated customers after remove:', updated);
+      console.log('Updated customers after remove:', updated.length, 'total customers');
       return updated;
     });
   };

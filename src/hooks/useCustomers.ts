@@ -25,6 +25,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     const result = await createCustomerOperation(customerData);
     if (result && typeof result === 'object') {
       console.log('Customer created successfully, real-time subscription will handle UI update');
+      // Don't manually update state here - let real-time subscription handle it
       return result;
     }
     return false;
@@ -35,6 +36,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     const result = await updateCustomerOperation(id, customerData);
     if (result && typeof result === 'object') {
       console.log('Customer updated successfully, real-time subscription will handle UI update');
+      // Don't manually update state here - let real-time subscription handle it
       return result;
     }
     return false;
@@ -45,6 +47,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     const result = await deleteCustomerOperation(id);
     if (result) {
       console.log('Customer deleted successfully, real-time subscription will handle UI update');
+      // Don't manually update state here - let real-time subscription handle it
       return true;
     }
     return false;
