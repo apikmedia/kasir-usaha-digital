@@ -15,20 +15,14 @@ export const useProductData = () => {
     try {
       if (showLoading) setLoading(true);
 
-      // Check cache first
-      const cached = cache.get();
-      if (cached) {
-        setProducts(cached);
-        if (showLoading) setLoading(false);
-        return cached;
-      }
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setProducts([]);
         if (showLoading) setLoading(false);
         return [];
       }
+
+      console.log('Fetching products for user:', user.id);
 
       const { data, error } = await supabase
         .from('products')
@@ -49,6 +43,7 @@ export const useProductData = () => {
       }
 
       const productsData = data || [];
+      console.log('Fetched products:', productsData.length);
       setProducts(productsData);
       cache.set(productsData);
       
@@ -64,6 +59,7 @@ export const useProductData = () => {
   const invalidateAndRefresh = () => {
     console.log('Invalidating products cache and refreshing');
     cache.invalidate();
+    // Force immediate refresh without showing loading state
     fetchProducts(false);
   };
 

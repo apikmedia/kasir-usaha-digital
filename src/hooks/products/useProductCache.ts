@@ -7,9 +7,19 @@ export const useProductCache = () => {
   const cacheKey = 'products_warung';
 
   return {
-    get: () => cache.get<Product[]>(cacheKey),
-    set: (products: Product[]) => cache.set(cacheKey, products),
-    invalidate: () => cache.invalidate(cacheKey),
+    get: () => {
+      const cached = cache.get<Product[]>(cacheKey);
+      console.log('Getting cached products:', cached?.length || 0);
+      return cached;
+    },
+    set: (products: Product[]) => {
+      console.log('Setting cached products:', products.length);
+      cache.set(cacheKey, products);
+    },
+    invalidate: () => {
+      console.log('Invalidating products cache');
+      cache.invalidate(cacheKey);
+    },
     cacheKey
   };
 };

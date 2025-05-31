@@ -14,6 +14,8 @@ export const useProductRealtime = ({ invalidateAndRefresh }: UseProductRealtimeP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      console.log(`Setting up real-time for products, user: ${user.id}`);
+
       channel = supabase
         .channel(`products_realtime_${user.id}_${Date.now()}`)
         .on('postgres_changes', {
@@ -23,8 +25,11 @@ export const useProductRealtime = ({ invalidateAndRefresh }: UseProductRealtimeP
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
           console.log('Product real-time update:', payload.eventType, payload);
-          // Immediate refresh for all product changes
-          invalidateAndRefresh();
+          
+          // Immediate refresh for all product changes with slight delay for database consistency
+          setTimeout(() => {
+            invalidateAndRefresh();
+          }, 100);
         })
         .subscribe((status) => {
           console.log('Products realtime subscription status:', status);
@@ -35,6 +40,7 @@ export const useProductRealtime = ({ invalidateAndRefresh }: UseProductRealtimeP
     
     return () => {
       if (channel) {
+        console.log('Cleaning up products realtime channel');
         supabase.removeChannel(channel);
       }
     };
