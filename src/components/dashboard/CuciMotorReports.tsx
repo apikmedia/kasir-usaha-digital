@@ -8,7 +8,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 const CuciMotorReports = () => {
   const { orders } = useOrders('cuci_motor');
   const { services } = useServices('cuci_motor');
-  const { customers } = useCustomers();
+  const { customers } = useCustomers('cuci_motor'); // Fixed: Added business type filter
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -175,7 +175,7 @@ const CuciMotorReports = () => {
         <Card>
           <CardHeader>
             <CardTitle>Statistik Customer</CardTitle>
-            <CardDescription>Informasi data pelanggan</CardDescription>
+            <CardDescription>Informasi data pelanggan cuci motor</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">

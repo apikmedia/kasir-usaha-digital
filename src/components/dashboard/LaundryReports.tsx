@@ -13,6 +13,18 @@ const LaundryReports = () => {
     }).format(amount);
   };
 
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Filter orders for today
+  const todayOrders = orders.filter(order => {
+    const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+    return orderDate === today;
+  });
+
+  const completedTodayOrders = todayOrders.filter(o => o.status === 'selesai');
+  const todayRevenue = completedTodayOrders.reduce((sum, o) => sum + o.total_amount, 0);
+
   return (
     <Card>
       <CardHeader>
@@ -24,7 +36,7 @@ const LaundryReports = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <h3 className="text-2xl font-bold text-blue-600">
-                {orders.filter(o => o.created_at.startsWith(new Date().toISOString().split('T')[0])).length}
+                {todayOrders.length}
               </h3>
               <p className="text-sm text-gray-600">Pesanan Hari Ini</p>
             </CardContent>
@@ -32,7 +44,7 @@ const LaundryReports = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <h3 className="text-2xl font-bold text-green-600">
-                {orders.filter(o => o.status === 'selesai' && o.created_at.startsWith(new Date().toISOString().split('T')[0])).length}
+                {completedTodayOrders.length}
               </h3>
               <p className="text-sm text-gray-600">Selesai Hari Ini</p>
             </CardContent>
@@ -40,11 +52,7 @@ const LaundryReports = () => {
           <Card>
             <CardContent className="p-4 text-center">
               <h3 className="text-2xl font-bold text-purple-600">
-                {formatCurrency(
-                  orders
-                    .filter(o => o.created_at.startsWith(new Date().toISOString().split('T')[0]))
-                    .reduce((sum, o) => sum + o.total_amount, 0)
-                )}
+                {formatCurrency(todayRevenue)}
               </h3>
               <p className="text-sm text-gray-600">Pendapatan Hari Ini</p>
             </CardContent>
