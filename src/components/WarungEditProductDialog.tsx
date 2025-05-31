@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -6,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit } from "lucide-react";
-import { useOptimizedProducts, Product } from '@/hooks/useOptimizedProducts';
+import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
+import type { Product } from '@/hooks/useOptimizedProducts';
 
 interface WarungEditProductDialogProps {
   product: Product;
