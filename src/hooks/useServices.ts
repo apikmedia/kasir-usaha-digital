@@ -1,5 +1,5 @@
 
-import { useInstantServices } from './services/useInstantServices';
+import { useOptimizedServices } from './useOptimizedServices';
 import { useServiceOperations } from './services/useServiceOperations';
 import type { BusinessType, Service } from './services/types';
 
@@ -11,7 +11,7 @@ export const useServices = (businessType: BusinessType) => {
     loading,
     refetch,
     invalidate
-  } = useInstantServices(businessType);
+  } = useOptimizedServices(businessType);
 
   const {
     createService,
@@ -19,7 +19,7 @@ export const useServices = (businessType: BusinessType) => {
     deleteService: deleteServiceOp
   } = useServiceOperations(
     businessType,
-    () => invalidate(), // Trigger cache invalidation
+    () => invalidate(),
     () => invalidate(),
     () => invalidate()
   );
@@ -34,7 +34,7 @@ export const useServices = (businessType: BusinessType) => {
 
   return {
     services,
-    loading, // Always false
+    loading,
     createService: async (serviceData: Omit<Service, 'id' | 'business_type' | 'user_id'>) => {
       const result = await createService(serviceData);
       invalidate();

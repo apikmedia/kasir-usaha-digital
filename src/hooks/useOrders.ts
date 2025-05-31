@@ -1,5 +1,5 @@
 
-import { useInstantOrders } from './useInstantOrders';
+import { useOptimizedOrders } from './useOptimizedOrders';
 import { useOrderOperations } from './useOrderOperations';
 import type { Order, BusinessType, OrderStatus } from '@/types/order';
 
@@ -11,7 +11,7 @@ export const useOrders = (businessType: BusinessType) => {
     loading,
     refetch,
     invalidate
-  } = useInstantOrders(businessType);
+  } = useOptimizedOrders(businessType);
 
   const {
     createOrder: createOrderOperation,
@@ -39,7 +39,7 @@ export const useOrders = (businessType: BusinessType) => {
 
   return {
     orders,
-    loading, // Always false
+    loading,
     createOrder,
     updateOrderStatus,
     refetch

@@ -1,5 +1,5 @@
 
-import { useInstantCustomers } from './customers/useInstantCustomers';
+import { useOptimizedCustomers } from './useOptimizedCustomers';
 import { useCustomerOperations } from './customers/useCustomerOperations';
 import type { BusinessType } from '@/types/customer';
 
@@ -11,7 +11,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     loading, 
     refetch,
     invalidate
-  } = useInstantCustomers(businessType);
+  } = useOptimizedCustomers(businessType);
   
   const { 
     createCustomer: createCustomerOperation, 
@@ -24,7 +24,6 @@ export const useCustomers = (businessType?: BusinessType) => {
     const result = await createCustomerOperation(customerData);
     if (result && typeof result === 'object') {
       console.log('Customer created successfully');
-      // Invalidate cache to trigger refresh
       invalidate();
       return result;
     }
@@ -58,7 +57,7 @@ export const useCustomers = (businessType?: BusinessType) => {
 
   return {
     customers,
-    loading, // Always false for instant loading
+    loading,
     createCustomer,
     updateCustomer,
     deleteCustomer,
