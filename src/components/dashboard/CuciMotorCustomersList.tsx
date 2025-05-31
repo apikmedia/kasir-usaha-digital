@@ -2,31 +2,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2 } from "lucide-react";
 import { useCustomers } from '@/hooks/useCustomers';
 import CuciMotorAddCustomerDialog from '@/components/CuciMotorAddCustomerDialog';
 import CuciMotorEditCustomerDialog from '@/components/CuciMotorEditCustomerDialog';
 import { useState } from 'react';
 
-const CustomerSkeleton = () => (
-  <TableRow>
-    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-    <TableCell>
-      <div className="flex space-x-1">
-        <Skeleton className="h-8 w-8" />
-        <Skeleton className="h-8 w-8" />
-      </div>
-    </TableCell>
-  </TableRow>
-);
-
 const CuciMotorCustomersList = () => {
-  const { customers, loading, deleteCustomer } = useCustomers('cuci_motor');
+  const { customers, deleteCustomer } = useCustomers('cuci_motor');
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const handleDelete = async (id: string, name: string) => {
@@ -75,15 +58,7 @@ const CuciMotorCustomersList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              <>
-                <CustomerSkeleton />
-                <CustomerSkeleton />
-                <CustomerSkeleton />
-                <CustomerSkeleton />
-                <CustomerSkeleton />
-              </>
-            ) : customers.length === 0 ? (
+            {customers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   Belum ada data pelanggan cuci motor

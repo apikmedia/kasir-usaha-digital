@@ -1,5 +1,5 @@
 
-import { useOptimizedOrderState } from './useOptimizedOrderState';
+import { useInstantOrders } from './useInstantOrders';
 import { useOrderOperations } from './useOrderOperations';
 import type { Order, BusinessType, OrderStatus } from '@/types/order';
 
@@ -9,10 +9,9 @@ export const useOrders = (businessType: BusinessType) => {
   const {
     orders,
     loading,
-    addOrder,
-    updateOrderInState,
-    refetch
-  } = useOptimizedOrderState(businessType);
+    refetch,
+    invalidate
+  } = useInstantOrders(businessType);
 
   const {
     createOrder: createOrderOperation,
@@ -22,8 +21,8 @@ export const useOrders = (businessType: BusinessType) => {
   const createOrder = async (orderData: Partial<Order>) => {
     const result = await createOrderOperation(businessType, orderData);
     
-    if (result && typeof result === 'object' && 'success' in result && result.success && 'data' in result && result.data) {
-      addOrder(result.data);
+    if (result && typeof result === 'object' && 'success' in result && result.success) {
+      invalidate();
       return true;
     }
     
@@ -33,14 +32,14 @@ export const useOrders = (businessType: BusinessType) => {
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const result = await updateOrderStatusOperation(orderId, status);
     
-    if (result && typeof result === 'object' && 'success' in result && result.success && 'updateData' in result && result.updateData) {
-      updateOrderInState(orderId, result.updateData);
+    if (result && typeof result === 'object' && 'success' in result && result.success) {
+      invalidate();
     }
   };
 
   return {
     orders,
-    loading,
+    loading, // Always false
     createOrder,
     updateOrderStatus,
     refetch

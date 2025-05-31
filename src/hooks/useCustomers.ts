@@ -1,5 +1,5 @@
 
-import { useCustomerData } from './customers/useCustomerData';
+import { useInstantCustomers } from './customers/useInstantCustomers';
 import { useCustomerOperations } from './customers/useCustomerOperations';
 import type { BusinessType } from '@/types/customer';
 
@@ -8,12 +8,10 @@ export { type Customer } from '@/types/customer';
 export const useCustomers = (businessType?: BusinessType) => {
   const { 
     customers, 
-    setCustomers, 
     loading, 
-    currentUserId, 
-    fetchCustomers,
-    removeCustomer
-  } = useCustomerData(businessType);
+    refetch,
+    invalidate
+  } = useInstantCustomers(businessType);
   
   const { 
     createCustomer: createCustomerOperation, 
@@ -26,6 +24,8 @@ export const useCustomers = (businessType?: BusinessType) => {
     const result = await createCustomerOperation(customerData);
     if (result && typeof result === 'object') {
       console.log('Customer created successfully');
+      // Invalidate cache to trigger refresh
+      invalidate();
       return result;
     }
     return false;
@@ -36,6 +36,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     const result = await updateCustomerOperation(id, customerData);
     if (result && typeof result === 'object') {
       console.log('Customer updated successfully');
+      invalidate();
       return result;
     }
     return false;
@@ -44,27 +45,23 @@ export const useCustomers = (businessType?: BusinessType) => {
   const deleteCustomer = async (id: string) => {
     console.log('Deleting customer:', id);
     
-    // Immediately remove from local state for instant UI feedback
-    removeCustomer(id);
-    
     const result = await deleteCustomerOperation(id);
     if (result) {
       console.log('Customer deleted successfully');
+      invalidate();
       return true;
     } else {
-      // If delete failed, refresh data to restore the item
-      console.log('Delete failed, refreshing data');
-      await fetchCustomers();
+      console.log('Delete failed');
       return false;
     }
   };
 
   return {
     customers,
-    loading,
+    loading, // Always false for instant loading
     createCustomer,
     updateCustomer,
     deleteCustomer,
-    refetch: fetchCustomers
+    refetch
   };
 };

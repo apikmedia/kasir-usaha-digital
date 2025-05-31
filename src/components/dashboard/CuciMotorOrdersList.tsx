@@ -3,12 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, CheckCircle, Clock, Receipt } from "lucide-react";
+import { CheckCircle, Clock, Receipt } from "lucide-react";
 import { useOrders } from '@/hooks/useOrders';
 import CuciMotorAddOrderDialog from '@/components/CuciMotorAddOrderDialog';
 
 const CuciMotorOrdersList = () => {
-  const { orders, loading, updateOrderStatus } = useOrders('cuci_motor');
+  const { orders, updateOrderStatus } = useOrders('cuci_motor');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -50,67 +50,63 @@ const CuciMotorOrdersList = () => {
         <CuciMotorAddOrderDialog />
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="text-center py-4">Memuat data...</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No. Order</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Motor</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_number}</TableCell>
-                  <TableCell>{order.customer_name || '-'}</TableCell>
-                  <TableCell>{order.notes || '-'}</TableCell>
-                  <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(order.status)}>
-                      {getStatusText(order.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(order.created_at)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      {order.status === 'antrian' && (
-                        <Button 
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, 'proses')}
-                          className="bg-blue-500 hover:bg-blue-600 text-white"
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Proses
-                        </Button>
-                      )}
-                      {order.status === 'proses' && (
-                        <Button 
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, 'selesai')}
-                          className="bg-green-500 hover:bg-green-600 text-white"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Selesai
-                        </Button>
-                      )}
-                      <Button variant="outline" size="sm">
-                        <Receipt className="h-4 w-4 mr-1" />
-                        Cetak
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>No. Order</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Motor</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Tanggal</TableHead>
+              <TableHead>Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">{order.order_number}</TableCell>
+                <TableCell>{order.customer_name || '-'}</TableCell>
+                <TableCell>{order.notes || '-'}</TableCell>
+                <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(order.status)}>
+                    {getStatusText(order.status)}
+                  </Badge>
+                </TableCell>
+                <TableCell>{formatDate(order.created_at)}</TableCell>
+                <TableCell>
+                  <div className="flex space-x-1">
+                    {order.status === 'antrian' && (
+                      <Button 
+                        size="sm"
+                        onClick={() => updateOrderStatus(order.id, 'proses')}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        <Clock className="h-4 w-4 mr-1" />
+                        Proses
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+                    )}
+                    {order.status === 'proses' && (
+                      <Button 
+                        size="sm"
+                        onClick={() => updateOrderStatus(order.id, 'selesai')}
+                        className="bg-green-500 hover:bg-green-600 text-white"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Selesai
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm">
+                      <Receipt className="h-4 w-4 mr-1" />
+                      Cetak
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
