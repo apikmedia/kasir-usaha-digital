@@ -48,7 +48,7 @@ const CuciMotorOrdersList = () => {
   const handleUpdateStatus = async (orderId: string, status: string) => {
     setUpdatingOrders(prev => new Set(prev).add(orderId));
     try {
-      await updateOrderStatus({ orderId, status });
+      await updateOrderStatus(orderId, status);
     } finally {
       setUpdatingOrders(prev => {
         const newSet = new Set(prev);
