@@ -25,35 +25,18 @@ export const useOptimizedQuery = <T = any>(config: QueryConfig) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Start with a base query and explicitly type it
-      let query: any = supabase
-        .from(config.table)
-        .select(config.select || '*', { count: 'exact' })
-        .eq('user_id', user.id);
-
-      // Apply filters with explicit typing
-      if (config.filters) {
-        Object.entries(config.filters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            query = query.eq(key, value);
-          }
-        });
-      }
-
-      // Apply ordering with explicit typing
-      if (config.orderBy) {
-        query = query.order(config.orderBy.column, { 
-          ascending: config.orderBy.ascending ?? true 
-        });
-      }
-
-      // Apply pagination using range (more efficient than limit/offset)
+      // Build the query parameters
+      const selectClause = config.select || '*';
       const pageSize = config.pageSize || 50;
       const from = pageParam * pageSize;
       const to = from + pageSize - 1;
-      
-      const result = await query.range(from, to);
-      const { data, error, count } = result;
+
+      // Execute the query with explicit parameters to avoid complex type inference
+      const { data, error, count } = await supabase
+        .from(config.table)
+        .select(selectClause, { count: 'exact' })
+        .eq('user_id', user.id)
+        .range(from, to);
 
       if (error) throw error;
 
