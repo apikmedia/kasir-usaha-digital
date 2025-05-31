@@ -23,7 +23,7 @@ export const useOptimizedServices = (businessType: BusinessType) => {
   };
 
   const {
-    data: services,
+    data: rawServices,
     isLoading,
     isError,
     error,
@@ -31,7 +31,22 @@ export const useOptimizedServices = (businessType: BusinessType) => {
     invalidate,
     prefetchNext,
     hasMore
-  } = useOptimizedQuery<Service>(queryConfig);
+  } = useOptimizedQuery(queryConfig);
+
+  // Transform the raw data to typed services
+  const services: Service[] = rawServices.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: item.price,
+    unit: item.unit,
+    estimated_duration: item.estimated_duration,
+    is_active: item.is_active,
+    business_type: item.business_type,
+    user_id: item.user_id,
+    created_at: item.created_at,
+    updated_at: item.updated_at
+  }));
 
   const {
     createService,

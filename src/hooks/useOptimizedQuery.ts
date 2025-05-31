@@ -16,34 +16,56 @@ interface QueryConfig {
   businessType?: string;
 }
 
-export const useOptimizedQuery = <T = any>(config: QueryConfig) => {
+interface QueryResult {
+  data: any[];
+  hasMore: boolean;
+}
+
+export const useOptimizedQuery = (config: QueryConfig) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const fetchData = async ({ pageParam = 0 }) => {
+  const fetchData = async ({ pageParam = 0 }): Promise<QueryResult> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Build the query parameters
-      const selectClause = config.select || '*';
       const pageSize = config.pageSize || 50;
       const from = pageParam * pageSize;
       const to = from + pageSize - 1;
 
-      // Execute the query with explicit parameters to avoid complex type inference
-      const { data, error, count } = await supabase
+      // Use a simpler approach without complex type inference
+      const query = supabase
         .from(config.table)
-        .select(selectClause, { count: 'exact' })
-        .eq('user_id', user.id)
-        .range(from, to);
+        .select(config.select || '*', { count: 'exact' })
+        .eq('user_id', user.id);
 
-      if (error) throw error;
+      // Apply filters if provided
+      let finalQuery = query;
+      if (config.filters) {
+        Object.entries(config.filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            finalQuery = finalQuery.eq(key, value);
+          }
+        });
+      }
 
-      const hasMore = count ? (from + pageSize) < count : false;
+      // Apply ordering if provided
+      if (config.orderBy) {
+        finalQuery = finalQuery.order(config.orderBy.column, { 
+          ascending: config.orderBy.ascending ?? true 
+        });
+      }
+
+      // Apply pagination
+      const result = await finalQuery.range(from, to);
+
+      if (result.error) throw result.error;
+
+      const hasMore = result.count ? (from + pageSize) < result.count : false;
 
       return { 
-        data: (data || []) as T[], 
+        data: result.data || [], 
         hasMore 
       };
     } catch (error) {

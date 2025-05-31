@@ -20,7 +20,7 @@ export const useOptimizedCustomers = (businessType?: BusinessType) => {
   };
 
   const {
-    data: customers,
+    data: rawCustomers,
     isLoading,
     isError,
     error,
@@ -28,7 +28,21 @@ export const useOptimizedCustomers = (businessType?: BusinessType) => {
     invalidate,
     prefetchNext,
     hasMore
-  } = useOptimizedQuery<Customer>(queryConfig);
+  } = useOptimizedQuery(queryConfig);
+
+  // Transform the raw data to typed customers
+  const customers: Customer[] = rawCustomers.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    phone: item.phone || undefined,
+    email: item.email || undefined,
+    address: item.address || undefined,
+    notes: item.notes || undefined,
+    business_type: item.business_type as BusinessType,
+    user_id: item.user_id,
+    created_at: item.created_at,
+    updated_at: item.updated_at
+  }));
 
   const { 
     createCustomer: createCustomerOperation, 

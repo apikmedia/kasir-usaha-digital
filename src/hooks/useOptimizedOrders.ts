@@ -1,4 +1,3 @@
-
 import { useOptimizedQuery } from './useOptimizedQuery';
 import { useOrderOperations } from './useOrderOperations';
 import { useQueryClient } from '@tanstack/react-query';
@@ -39,7 +38,7 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
   };
 
   const {
-    data: orders,
+    data: rawOrders,
     isLoading,
     isError,
     error,
@@ -47,7 +46,24 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
     invalidate,
     prefetchNext,
     hasMore
-  } = useOptimizedQuery<Order>(queryConfig);
+  } = useOptimizedQuery(queryConfig);
+
+  // Transform the raw data to typed orders
+  const orders: Order[] = rawOrders.map((item: any) => ({
+    id: item.id,
+    order_number: item.order_number,
+    business_type: item.business_type as BusinessType,
+    status: item.status,
+    total_amount: item.total_amount,
+    payment_method: item.payment_method,
+    payment_status: item.payment_status,
+    notes: item.notes,
+    customer_id: item.customer_id,
+    user_id: item.user_id,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    finished_at: item.finished_at
+  }));
 
   // Optimized real-time subscription
   useEffect(() => {
