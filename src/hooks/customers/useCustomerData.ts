@@ -2,11 +2,11 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { BusinessType } from '@/types/customer';
-import { useCustomerFetch } from './useCustomerFetch';
+import { useOptimizedCustomerFetch } from './useOptimizedCustomerFetch';
 import { useCustomerState } from './useCustomerState';
 
 export const useCustomerData = (businessType?: BusinessType) => {
-  const { loading, setLoading, fetchCustomers } = useCustomerFetch(businessType);
+  const { loading, fetchCustomers } = useOptimizedCustomerFetch(businessType);
   const {
     customers,
     setCustomers,
@@ -31,23 +31,17 @@ export const useCustomerData = (businessType?: BusinessType) => {
       }
     } catch (error) {
       console.error('Error initializing customer data:', error);
-      setLoading(false);
     }
   };
 
-  // Simplified real-time subscription
+  // Optimized real-time subscription
   useEffect(() => {
-    if (!currentUserId) {
-      console.log('No current user, skipping real-time subscription');
-      return;
-    }
+    if (!currentUserId) return;
 
-    console.log('Setting up customer real-time subscription for:', businessType, 'user:', currentUserId);
+    console.log('Setting up optimized customer real-time subscription');
 
-    const channelName = `customers-${currentUserId}-${businessType || 'all'}`;
-    
     const channel = supabase
-      .channel(channelName)
+      .channel(`customers-optimized-${currentUserId}-${businessType || 'all'}`)
       .on(
         'postgres_changes',
         {
@@ -57,7 +51,7 @@ export const useCustomerData = (businessType?: BusinessType) => {
           filter: `user_id=eq.${currentUserId}`
         },
         (payload) => {
-          console.log('Real-time customer update received:', payload.eventType, payload);
+          console.log('Real-time customer update received:', payload.eventType);
           
           if (payload.eventType === 'INSERT' && payload.new) {
             const newCustomerData = payload.new as any;
@@ -80,7 +74,6 @@ export const useCustomerData = (businessType?: BusinessType) => {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up customer subscription:', channelName);
       supabase.removeChannel(channel);
     };
   }, [currentUserId, businessType]);
@@ -88,7 +81,7 @@ export const useCustomerData = (businessType?: BusinessType) => {
   // Initial fetch only once
   useEffect(() => {
     initializeAndFetch();
-  }, []); // Remove businessType dependency to prevent re-fetching
+  }, []);
 
   return {
     customers,

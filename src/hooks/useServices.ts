@@ -1,5 +1,5 @@
 
-import { useServiceData } from './services/useServiceData';
+import { useOptimizedServiceData } from './services/useOptimizedServiceData';
 import { useServiceOperations } from './services/useServiceOperations';
 import type { BusinessType } from './services/types';
 
@@ -14,7 +14,7 @@ export const useServices = (businessType: BusinessType) => {
     addService,
     updateServiceInState,
     removeService
-  } = useServiceData(businessType);
+  } = useOptimizedServiceData(businessType);
 
   const {
     createService,
@@ -33,6 +33,6 @@ export const useServices = (businessType: BusinessType) => {
     createService,
     updateService,
     deleteService,
-    refetch: fetchServices
+    refetch: () => fetchServices(true)
   };
 };
