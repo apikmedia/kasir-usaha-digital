@@ -1,14 +1,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2 } from "lucide-react";
 import { useServices } from '@/hooks/useServices';
 import CuciMotorAddServiceDialog from '@/components/CuciMotorAddServiceDialog';
 import CuciMotorEditServiceDialog from '@/components/CuciMotorEditServiceDialog';
+import OptimizedLoader from '@/components/ui/OptimizedLoader';
 
 const CuciMotorServicesList = () => {
-  const { services, deleteService } = useServices('cuci_motor');
+  const { services, loading, deleteService, error } = useServices('cuci_motor');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -24,8 +24,17 @@ const CuciMotorServicesList = () => {
     }
   };
 
-  // Show skeleton only for the first second while data loads
-  const showSkeleton = services.length === 0;
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-500">
+            Gagal memuat data layanan. Silakan coba lagi.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -37,21 +46,8 @@ const CuciMotorServicesList = () => {
         <CuciMotorAddServiceDialog />
       </CardHeader>
       <CardContent>
-        {showSkeleton ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-5 w-1/2" />
-                    <Skeleton className="h-3 w-1/3" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        {loading ? (
+          <OptimizedLoader type="grid" count={6} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services.map((service) => (

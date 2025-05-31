@@ -1,79 +1,48 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useSimpleCache } from './useSimpleCache';
+import { useOptimizedQuery } from './useOptimizedQuery';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Order, BusinessType } from '@/types/order';
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-export const useOptimizedOrders = (businessType: BusinessType) => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const cache = useSimpleCache();
-  const { toast } = useToast();
+export const useOptimizedOrders = (businessType: BusinessType, options?: {
+  dateRange?: { from: Date; to: Date };
+  status?: string;
+  limit?: number;
+}) => {
+  const queryClient = useQueryClient();
   
-  const cacheKey = `orders_${businessType}`;
-
-  const fetchOrders = async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
-
-      // Check cache first
-      const cached = cache.get<Order[]>(cacheKey);
-      if (cached) {
-        setOrders(cached);
-        if (showLoading) setLoading(false);
-        return cached;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setOrders([]);
-        if (showLoading) setLoading(false);
-        return [];
-      }
-
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('business_type', businessType)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('Error fetching orders:', error);
-        toast({
-          title: "Error",
-          description: "Gagal memuat data pesanan",
-          variant: "destructive",
-        });
-        if (showLoading) setLoading(false);
-        return [];
-      }
-
-      const ordersData = data || [];
-      setOrders(ordersData);
-      cache.set(cacheKey, ordersData);
-      
-      if (showLoading) setLoading(false);
-      return ordersData;
-    } catch (error) {
-      console.error('Error in fetchOrders:', error);
-      if (showLoading) setLoading(false);
-      return [];
-    }
+  // Build filters based on options
+  const filters: Record<string, any> = {
+    business_type: businessType
   };
 
-  const invalidateAndRefresh = () => {
-    cache.invalidate(cacheKey);
-    fetchOrders(false);
+  if (options?.status) {
+    filters.status = options.status;
+  }
+
+  const queryConfig = {
+    queryKey: ['orders', businessType, options?.status, options?.dateRange],
+    table: 'orders',
+    select: 'id, order_number, business_type, status, total_amount, payment_method, payment_status, notes, customer_id, created_at, updated_at, finished_at',
+    filters,
+    orderBy: { column: 'created_at', ascending: false },
+    pageSize: options?.limit || 50,
+    businessType
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, [businessType]);
+  const {
+    data: orders,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    invalidate,
+    prefetchNext,
+    hasMore
+  } = useOptimizedQuery<Order>(queryConfig);
 
-  // Simple real-time updates
+  // Optimized real-time subscription
   useEffect(() => {
     let channel: any = null;
     
@@ -82,20 +51,21 @@ export const useOptimizedOrders = (businessType: BusinessType) => {
       if (!user) return;
 
       channel = supabase
-        .channel(`orders_${businessType}_${user.id}`)
+        .channel(`orders_optimized_${businessType}_${user.id}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${user.id} AND business_type=eq.${businessType}`
         }, (payload) => {
-          const record = payload.new || payload.old;
-          // Add type guard to safely check business_type
-          if (record && typeof record === 'object' && 'business_type' in record) {
-            if (record.business_type === businessType) {
-              invalidateAndRefresh();
-            }
-          }
+          console.log('Order real-time update:', payload.eventType);
+          
+          // Throttled invalidation
+          setTimeout(() => {
+            queryClient.invalidateQueries({ 
+              queryKey: ['orders', businessType] 
+            });
+          }, 100);
         })
         .subscribe();
     };
@@ -107,12 +77,15 @@ export const useOptimizedOrders = (businessType: BusinessType) => {
         supabase.removeChannel(channel);
       }
     };
-  }, [businessType]);
+  }, [businessType, queryClient]);
 
   return {
     orders,
-    loading,
-    refetch: () => fetchOrders(),
-    invalidate: invalidateAndRefresh
+    loading: isLoading,
+    error: isError ? error : null,
+    refetch,
+    invalidate,
+    hasMore,
+    prefetchNext
   };
 };
