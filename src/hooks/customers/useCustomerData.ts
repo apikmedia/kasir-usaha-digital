@@ -21,38 +21,41 @@ export const useCustomerData = (businessType?: BusinessType) => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUserId(user?.id || null);
     
-    const fetchedCustomers = await fetchCustomers();
-    setCustomers(fetchedCustomers);
+    if (user?.id) {
+      const fetchedCustomers = await fetchCustomers();
+      setCustomers(fetchedCustomers);
+    }
   };
 
   // Set up real-time subscription
   useEffect(() => {
     if (!currentUserId) return;
 
-    console.log('Setting up customer real-time subscription for:', businessType);
+    console.log('Setting up customer real-time subscription for:', businessType, 'user:', currentUserId);
 
     const channel = supabase
-      .channel(`customers-${businessType || 'all'}-${Date.now()}`)
+      .channel(`customers-realtime-${businessType || 'all'}-${currentUserId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'customers'
+          table: 'customers',
+          filter: `user_id=eq.${currentUserId}`
         },
         (payload) => {
-          console.log('Real-time customers update:', payload);
+          console.log('Real-time customers update received:', payload);
           
           if (payload.eventType === 'INSERT') {
             const newCustomerData = payload.new as any;
-            if (newCustomerData && newCustomerData.user_id === currentUserId && 
+            if (newCustomerData && 
                 (!businessType || newCustomerData.business_type === businessType)) {
               console.log('Adding new customer to state:', newCustomerData);
               addCustomer(newCustomerData);
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedCustomerData = payload.new as any;
-            if (updatedCustomerData && updatedCustomerData.user_id === currentUserId) {
+            if (updatedCustomerData) {
               console.log('Updating customer in state:', updatedCustomerData);
               if (!businessType || updatedCustomerData.business_type === businessType) {
                 updateCustomer(updatedCustomerData);

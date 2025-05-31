@@ -11,10 +11,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     setCustomers, 
     loading, 
     currentUserId, 
-    fetchCustomers, 
-    addCustomer: addCustomerToState, 
-    updateCustomer: updateCustomerInState, 
-    removeCustomer: removeCustomerFromState
+    fetchCustomers
   } = useCustomerData(businessType);
   
   const { 
@@ -27,7 +24,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     console.log('Creating customer:', customerData);
     const result = await createCustomerOperation(customerData);
     if (result && typeof result === 'object') {
-      console.log('Customer created successfully, will be added via real-time subscription');
+      console.log('Customer created successfully, real-time subscription will handle UI update');
       return result;
     }
     return false;
@@ -37,7 +34,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     console.log('Updating customer:', id, customerData);
     const result = await updateCustomerOperation(id, customerData);
     if (result && typeof result === 'object') {
-      console.log('Customer updated successfully, will be updated via real-time subscription');
+      console.log('Customer updated successfully, real-time subscription will handle UI update');
       return result;
     }
     return false;
@@ -47,7 +44,7 @@ export const useCustomers = (businessType?: BusinessType) => {
     console.log('Deleting customer:', id);
     const result = await deleteCustomerOperation(id);
     if (result) {
-      console.log('Customer deleted successfully, will be removed via real-time subscription');
+      console.log('Customer deleted successfully, real-time subscription will handle UI update');
       return true;
     }
     return false;

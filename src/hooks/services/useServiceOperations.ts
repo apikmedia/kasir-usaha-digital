@@ -52,7 +52,7 @@ export const useServiceOperations = (
         description: "Layanan berhasil ditambahkan",
       });
       
-      addService(data);
+      // Note: Real-time subscription will handle adding to state
       
       return data;
     } catch (error) {
@@ -77,7 +77,7 @@ export const useServiceOperations = (
 
       if (error) throw error;
 
-      updateServiceInState(data);
+      // Note: Real-time subscription will handle updating state
 
       toast({
         title: "Berhasil",
@@ -104,7 +104,7 @@ export const useServiceOperations = (
 
       if (error) throw error;
 
-      removeService(id);
+      // Note: Real-time subscription will handle removing from state
 
       toast({
         title: "Berhasil",

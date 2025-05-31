@@ -18,11 +18,6 @@ export const useServiceData = (businessType: BusinessType) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.error('No authenticated user found');
-        toast({
-          title: "Error",
-          description: "User tidak ditemukan. Silakan login kembali.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -55,7 +50,13 @@ export const useServiceData = (businessType: BusinessType) => {
 
   const addService = (newService: Service) => {
     console.log('Adding service to state:', newService);
-    setServices(prev => [...prev, newService].sort((a, b) => a.name.localeCompare(b.name)));
+    setServices(prev => {
+      const exists = prev.find(s => s.id === newService.id);
+      if (exists) {
+        return prev;
+      }
+      return [...prev, newService].sort((a, b) => a.name.localeCompare(b.name));
+    });
   };
 
   const updateServiceInState = (updatedService: Service) => {
@@ -74,36 +75,39 @@ export const useServiceData = (businessType: BusinessType) => {
   useEffect(() => {
     if (!currentUserId) return;
 
-    console.log('Setting up service real-time subscription for:', businessType);
+    console.log('Setting up service real-time subscription for:', businessType, 'user:', currentUserId);
 
     const channel = supabase
-      .channel(`services-${businessType}-${Date.now()}`)
+      .channel(`services-realtime-${businessType}-${currentUserId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'services',
-          filter: `business_type=eq.${businessType}`
+          filter: `user_id=eq.${currentUserId}`
         },
         (payload) => {
-          console.log('Real-time services update:', payload);
+          console.log('Real-time services update received:', payload);
           
           if (payload.eventType === 'INSERT') {
             const newServiceData = payload.new as any;
-            if (newServiceData && newServiceData.user_id === currentUserId) {
+            if (newServiceData && newServiceData.business_type === businessType) {
               console.log('Adding new service to state:', newServiceData);
               addService(newServiceData as Service);
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedServiceData = payload.new as any;
-            if (updatedServiceData && updatedServiceData.user_id === currentUserId) {
+            if (updatedServiceData && updatedServiceData.business_type === businessType) {
               console.log('Updating service in state:', updatedServiceData);
               updateServiceInState(updatedServiceData as Service);
+            } else if (updatedServiceData && updatedServiceData.business_type !== businessType) {
+              console.log('Removing service from state due to business type change:', updatedServiceData.id);
+              removeService(updatedServiceData.id);
             }
           } else if (payload.eventType === 'DELETE') {
             const deletedServiceData = payload.old as any;
-            if (deletedServiceData && deletedServiceData.user_id === currentUserId) {
+            if (deletedServiceData) {
               console.log('Removing service from state:', deletedServiceData.id);
               removeService(deletedServiceData.id);
             }

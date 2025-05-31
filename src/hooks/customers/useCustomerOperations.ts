@@ -35,7 +35,7 @@ export const useCustomerOperations = () => {
         description: "Pelanggan berhasil ditambahkan",
       });
       
-      // Return the created customer data for immediate UI update
+      // Note: Real-time subscription will handle adding to state
       return data;
     } catch (error) {
       console.error('Error creating customer:', error);
@@ -64,6 +64,7 @@ export const useCustomerOperations = () => {
         description: "Data pelanggan berhasil diperbarui",
       });
       
+      // Note: Real-time subscription will handle updating state
       return data;
     } catch (error) {
       console.error('Error updating customer:', error);
@@ -89,6 +90,8 @@ export const useCustomerOperations = () => {
         title: "Berhasil",
         description: "Pelanggan berhasil dihapus",
       });
+      
+      // Note: Real-time subscription will handle removing from state
       return true;
     } catch (error) {
       console.error('Error deleting customer:', error);
