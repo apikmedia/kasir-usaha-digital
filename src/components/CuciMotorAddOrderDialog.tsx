@@ -6,17 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
-import { useOrders } from '@/hooks/useOrders';
+import { Plus, Loader2 } from "lucide-react";
 import { useServices } from '@/hooks/useServices';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const CuciMotorAddOrderDialog = () => {
-  const { createOrder } = useOrders('cuci_motor');
   const { services } = useServices('cuci_motor');
   const { customers } = useCustomers('cuci_motor');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     customer_id: '',
     customer_name: '',
@@ -26,64 +28,81 @@ const CuciMotorAddOrderDialog = () => {
     license_plate: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isSubmitting) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      if (!formData.customer_name.trim()) {
-        alert('Nama customer harus diisi');
-        return;
+  const createOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!formData.customer_name.trim() || !formData.motor_type.trim() || !formData.service_id) {
+        throw new Error('Data tidak lengkap');
       }
-      
-      if (!formData.motor_type.trim()) {
-        alert('Jenis motor harus diisi');
-        return;
-      }
-      
-      if (!formData.service_id) {
-        alert('Layanan harus dipilih');
-        return;
-      }
-      
+
       const selectedService = services.find(s => s.id === formData.service_id);
-      if (!selectedService) {
-        alert('Layanan tidak ditemukan');
-        return;
+      if (!selectedService) throw new Error('Layanan tidak ditemukan');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User tidak ditemukan');
+
+      // Check daily limit
+      const { data: limitCheck, error: limitError } = await supabase
+        .rpc('check_daily_limit');
+
+      if (limitError) throw limitError;
+      if (!limitCheck) throw new Error('Batas transaksi harian telah tercapai');
+
+      // Generate order number
+      const { data: orderNumber, error: orderNumberError } = await supabase
+        .rpc('generate_order_number', { business_prefix: 'CMT' });
+
+      if (orderNumberError || !orderNumber) {
+        throw new Error('Gagal membuat nomor pesanan');
       }
 
       const orderData = {
-        customer_id: formData.customer_id || undefined,
+        order_number: orderNumber,
+        business_type: 'cuci_motor',
+        user_id: user.id,
+        customer_id: formData.customer_id || null,
         total_amount: selectedService.price,
         notes: `${formData.motor_type}${formData.license_plate ? ` - ${formData.license_plate}` : ''}${formData.notes ? ` | ${formData.notes}` : ''}`,
-        status: 'antrian' as const,
+        status: 'antrian',
         payment_status: false
       };
 
-      console.log('Creating order with data:', orderData);
+      const { data, error } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
 
-      const success = await createOrder(orderData);
-      
-      if (success) {
-        setOpen(false);
-        setFormData({
-          customer_id: '',
-          customer_name: '',
-          service_id: '',
-          notes: '',
-          motor_type: '',
-          license_plate: ''
-        });
-      }
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      alert('Terjadi kesalahan saat membuat pesanan');
-    } finally {
-      setIsSubmitting(false);
-    }
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['orders', 'cuci_motor'] });
+      toast({
+        title: "Berhasil",
+        description: `Pesanan berhasil dibuat dengan nomor: ${data.order_number}`,
+      });
+      setOpen(false);
+      setFormData({
+        customer_id: '',
+        customer_name: '',
+        service_id: '',
+        notes: '',
+        motor_type: '',
+        license_plate: ''
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Gagal membuat pesanan: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createOrderMutation.mutate();
   };
 
   const selectedCustomer = customers.find(c => c.id === formData.customer_id);
@@ -193,8 +212,15 @@ const CuciMotorAddOrderDialog = () => {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Memproses...' : 'Tambah Pesanan'}
+            <Button type="submit" disabled={createOrderMutation.isPending}>
+              {createOrderMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Memproses...
+                </>
+              ) : (
+                'Tambah Pesanan'
+              )}
             </Button>
           </div>
         </form>

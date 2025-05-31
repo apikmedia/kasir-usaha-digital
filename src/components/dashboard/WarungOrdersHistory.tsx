@@ -1,11 +1,29 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useOrders } from '@/hooks/useOrders';
+import { Loader2 } from "lucide-react";
+import { useOrdersPagination } from '@/hooks/useOrdersPagination';
+import PaginationControls from '@/components/ui/PaginationControls';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const WarungOrdersHistory = () => {
-  const { orders, loading: ordersLoading } = useOrders('warung');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
+  const { 
+    orders, 
+    totalCount, 
+    isLoading, 
+    isError 
+  } = useOrdersPagination({ 
+    businessType: 'warung', 
+    page: currentPage, 
+    pageSize 
+  });
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -24,36 +42,84 @@ const WarungOrdersHistory = () => {
     }
   };
 
+  const getSerialNumber = (index: number) => {
+    return (currentPage - 1) * pageSize + index + 1;
+  };
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-500">
+            Gagal memuat data transaksi. Silakan coba lagi.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Riwayat Transaksi</CardTitle>
-        <CardDescription>Daftar transaksi yang telah dilakukan</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Riwayat Transaksi</CardTitle>
+          <CardDescription>
+            Total: {totalCount} transaksi | Halaman {currentPage} dari {totalPages}
+          </CardDescription>
+        </div>
+        {isLoading && (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        )}
       </CardHeader>
       <CardContent>
-        {ordersLoading ? (
-          <div className="text-center py-4">Memuat data...</div>
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: pageSize }).map((_, index) => (
+              <Skeleton key={index} className="h-12 w-full" />
+            ))}
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No. Transaksi</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Tanggal</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_number}</TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                  <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">No.</TableHead>
+                  <TableHead>No. Transaksi</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Tanggal</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      Tidak ada transaksi ditemukan
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map((order, index) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {getSerialNumber(index)}
+                      </TableCell>
+                      <TableCell className="font-medium">{order.order_number}</TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                      <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={isLoading}
+            />
+          </>
         )}
       </CardContent>
     </Card>

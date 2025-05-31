@@ -1,13 +1,32 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Clock, CheckCircle } from "lucide-react";
-import { useOrders } from '@/hooks/useOrders';
+import { Clock, CheckCircle, Loader2 } from "lucide-react";
+import { useOrdersPagination } from '@/hooks/useOrdersPagination';
+import PaginationControls from '@/components/ui/PaginationControls';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const LaundryOrdersList = () => {
-  const { orders, updateOrderStatus } = useOrders('laundry');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const { 
+    orders, 
+    totalCount, 
+    isLoading, 
+    isError, 
+    updateOrderStatus, 
+    isUpdating 
+  } = useOrdersPagination({ 
+    businessType: 'laundry', 
+    page: currentPage, 
+    pageSize 
+  });
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -30,59 +49,121 @@ const LaundryOrdersList = () => {
     }).format(amount);
   };
 
+  const getSerialNumber = (index: number) => {
+    return (currentPage - 1) * pageSize + index + 1;
+  };
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-500">
+            Gagal memuat data pesanan. Silakan coba lagi.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Daftar Pesanan</CardTitle>
-        <CardDescription>Kelola pesanan laundry Anda</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Daftar Pesanan</CardTitle>
+          <CardDescription>
+            Total: {totalCount} pesanan | Halaman {currentPage} dari {totalPages}
+          </CardDescription>
+        </div>
+        {isLoading && (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        )}
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>No. Pesanan</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Tanggal</TableHead>
-              <TableHead>Catatan</TableHead>
-              <TableHead>Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.order_number}</TableCell>
-                <TableCell>{getStatusBadge(order.status)}</TableCell>
-                <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
-                <TableCell className="max-w-xs truncate">{order.notes}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    {order.status === 'antrian' && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => updateOrderStatus(order.id, 'proses')}
-                      >
-                        <Clock className="h-4 w-4 mr-1" />
-                        Proses
-                      </Button>
-                    )}
-                    {order.status === 'proses' && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => updateOrderStatus(order.id, 'selesai')}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Selesai
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: pageSize }).map((_, index) => (
+              <Skeleton key={index} className="h-12 w-full" />
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">No.</TableHead>
+                  <TableHead>No. Pesanan</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Catatan</TableHead>
+                  <TableHead>Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      Tidak ada pesanan ditemukan
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map((order, index) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {getSerialNumber(index)}
+                      </TableCell>
+                      <TableCell className="font-medium">{order.order_number}</TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                      <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
+                      <TableCell className="max-w-xs truncate">{order.notes}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          {order.status === 'antrian' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => updateOrderStatus({ orderId: order.id, status: 'proses' })}
+                              disabled={isUpdating}
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <Clock className="h-4 w-4 mr-1" />
+                              )}
+                              Proses
+                            </Button>
+                          )}
+                          {order.status === 'proses' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => updateOrderStatus({ orderId: order.id, status: 'selesai' })}
+                              disabled={isUpdating}
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Selesai
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={isLoading}
+            />
+          </>
+        )}
       </CardContent>
     </Card>
   );
