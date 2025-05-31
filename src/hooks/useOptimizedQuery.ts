@@ -34,56 +34,44 @@ export const useOptimizedQuery = (config: QueryConfig) => {
       const from = pageParam * pageSize;
       const to = from + pageSize - 1;
 
-      // Build query using supabase-js client directly to avoid type issues
-      const { data, error, count } = await supabase.rpc('execute_optimized_query', {
-        table_name: config.table,
-        select_fields: config.select || '*',
-        user_id_param: user.id,
-        filters_param: config.filters || {},
-        order_column: config.orderBy?.column || 'created_at',
-        order_ascending: config.orderBy?.ascending ?? false,
-        limit_param: pageSize,
-        offset_param: from
-      }).then(async (result) => {
-        // Fallback to direct query if RPC doesn't exist
-        if (result.error?.code === '42883') { // function does not exist
-          let queryBuilder = supabase
-            .from(config.table)
-            .select(config.select || '*', { count: 'exact' });
+      // Use any type to avoid deep type instantiation issues
+      const baseQuery: any = supabase
+        .from(config.table)
+        .select(config.select || '*', { count: 'exact' });
 
-          // Add user filter
-          queryBuilder = queryBuilder.eq('user_id', user.id);
+      // Build query step by step to avoid complex type inference
+      let finalQuery = baseQuery.eq('user_id', user.id);
 
-          // Add other filters
-          if (config.filters) {
-            Object.entries(config.filters).forEach(([key, value]) => {
-              if (value !== undefined && value !== null) {
-                queryBuilder = queryBuilder.eq(key, value);
-              }
-            });
+      // Add filters
+      if (config.filters) {
+        Object.entries(config.filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            finalQuery = finalQuery.eq(key, value);
           }
+        });
+      }
 
-          // Add ordering
-          if (config.orderBy) {
-            queryBuilder = queryBuilder.order(config.orderBy.column, { 
-              ascending: config.orderBy.ascending ?? true 
-            });
-          }
+      // Add ordering
+      if (config.orderBy) {
+        finalQuery = finalQuery.order(config.orderBy.column, { 
+          ascending: config.orderBy.ascending ?? true 
+        });
+      }
 
-          // Add pagination
-          queryBuilder = queryBuilder.range(from, to);
+      // Add pagination
+      finalQuery = finalQuery.range(from, to);
 
-          return await queryBuilder;
-        }
-        return result;
-      });
+      // Execute query with explicit typing
+      const result = await finalQuery;
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
-      const hasMore = count ? (from + pageSize) < count : false;
+      // Ensure data is always an array
+      const responseData = Array.isArray(result.data) ? result.data : [];
+      const hasMore = result.count ? (from + pageSize) < result.count : false;
 
       return { 
-        data: data || [], 
+        data: responseData, 
         hasMore 
       };
     } catch (error) {
