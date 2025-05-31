@@ -41,20 +41,42 @@ const CuciMotorAddOrderDialog = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User tidak ditemukan');
 
-      // Check daily limit
+      console.log('Checking daily limit for user:', user.id);
+      
+      // Enhanced daily limit check with better error handling
       const { data: limitCheck, error: limitError } = await supabase
         .rpc('check_daily_limit');
 
-      if (limitError) throw limitError;
-      if (!limitCheck) throw new Error('Batas transaksi harian telah tercapai');
+      console.log('Daily limit check result:', limitCheck, 'Error:', limitError);
+
+      if (limitError) {
+        console.error('Error checking daily limit:', limitError);
+        throw new Error(`Error checking limit: ${limitError.message}`);
+      }
+      
+      if (!limitCheck) {
+        // Get current transaction count for better error message
+        const { data: currentCount } = await supabase
+          .from('transactions')
+          .select('transaction_count')
+          .eq('user_id', user.id)
+          .eq('date', new Date().toISOString().split('T')[0])
+          .single();
+          
+        const count = currentCount?.transaction_count || 0;
+        throw new Error(`Batas transaksi harian telah tercapai (${count}/20). Upgrade ke Premium untuk transaksi unlimited.`);
+      }
 
       // Generate order number
       const { data: orderNumber, error: orderNumberError } = await supabase
         .rpc('generate_order_number', { business_prefix: 'CMT' });
 
       if (orderNumberError || !orderNumber) {
+        console.error('Error generating order number:', orderNumberError);
         throw new Error('Gagal membuat nomor pesanan');
       }
+
+      console.log('Generated order number:', orderNumber);
 
       const businessType: BusinessType = 'cuci_motor';
       const orderStatus: OrderStatus = 'antrian';
@@ -70,13 +92,20 @@ const CuciMotorAddOrderDialog = () => {
         payment_status: false
       };
 
+      console.log('Creating order with data:', orderData);
+
       const { data, error } = await supabase
         .from('orders')
         .insert(orderData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating order:', error);
+        throw error;
+      }
+
+      console.log('Order created successfully:', data);
       return data;
     },
     onSuccess: (data) => {
@@ -96,9 +125,10 @@ const CuciMotorAddOrderDialog = () => {
       });
     },
     onError: (error) => {
+      console.error('Error in createOrderMutation:', error);
       toast({
         title: "Error",
-        description: "Gagal membuat pesanan: " + error.message,
+        description: error.message,
         variant: "destructive",
       });
     },

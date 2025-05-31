@@ -29,22 +29,34 @@ export const useOrderOperations = () => {
 
       console.log('Current user:', user.id);
 
-      // Check daily limit first
-      console.log('Checking daily limit...');
+      // Enhanced daily limit check with better logging
+      console.log('Checking daily limit for business type:', businessType);
       const { data: limitCheck, error: limitError } = await supabase
         .rpc('check_daily_limit');
 
+      console.log('Daily limit check - Data:', limitCheck, 'Error:', limitError);
+
       if (limitError) {
         console.error('Error checking limit:', limitError);
-        throw limitError;
+        throw new Error(`Error checking daily limit: ${limitError.message}`);
       }
       
-      console.log('Daily limit check result:', limitCheck);
-      
       if (!limitCheck) {
+        // Get current transaction count for better error reporting
+        const today = new Date().toISOString().split('T')[0];
+        const { data: currentTransactions } = await supabase
+          .from('transactions')
+          .select('transaction_count')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .single();
+          
+        const currentCount = currentTransactions?.transaction_count || 0;
+        console.log('Current transaction count:', currentCount);
+        
         toast({
           title: "Limit Tercapai",
-          description: "Batas transaksi harian telah tercapai. Upgrade ke Premium untuk transaksi unlimited.",
+          description: `Batas transaksi harian telah tercapai (${currentCount}/20). Upgrade ke Premium untuk transaksi unlimited.`,
           variant: "destructive",
         });
         return false;

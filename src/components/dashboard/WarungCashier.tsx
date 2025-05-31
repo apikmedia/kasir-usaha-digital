@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
 import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
+import { useQueryClient } from '@tanstack/react-query';
 import WarungCart from './WarungCart';
 import WarungProductGrid from './WarungProductGrid';
 
@@ -12,6 +13,7 @@ interface CartItem {
 }
 
 const WarungCashier = () => {
+  const queryClient = useQueryClient();
   const { createOrder } = useOptimizedOrders('warung');
   const { products, loading: productsLoading, updateStock } = useOptimizedProducts();
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -77,7 +79,22 @@ const WarungCashier = () => {
       for (const item of cart) {
         await updateStock(item.product.id, item.product.stock - item.quantity);
       }
+      
+      // Clear cart
       setCart([]);
+      
+      // Force immediate refresh of all warung-related queries
+      console.log('Force refreshing warung orders after checkout...');
+      queryClient.invalidateQueries({ queryKey: ['orders', 'warung'] });
+      
+      // Also trigger refresh for paginated orders
+      queryClient.invalidateQueries({ 
+        queryKey: ['orders'],
+        predicate: (query) => {
+          const queryKey = query.queryKey as any[];
+          return queryKey.includes('warung');
+        }
+      });
     }
   };
 
