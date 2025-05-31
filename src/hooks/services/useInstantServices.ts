@@ -64,9 +64,12 @@ export const useInstantServices = (businessType: BusinessType) => {
           },
           (payload) => {
             console.log('Service real-time update:', payload.eventType);
-            // Only invalidate if it affects our business type
-            if (payload.new?.business_type === businessType || 
-                payload.old?.business_type === businessType) {
+            // Only invalidate if it affects our business type with proper type checking
+            const newRecord = payload.new as any;
+            const oldRecord = payload.old as any;
+            
+            if ((newRecord && newRecord.business_type === businessType) || 
+                (oldRecord && oldRecord.business_type === businessType)) {
               invalidate();
             }
           }
