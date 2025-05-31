@@ -43,20 +43,15 @@ export const useOrderOperations = () => {
       
       if (!limitCheck) {
         // Get current transaction count for better error reporting
-        const today = new Date().toISOString().split('T')[0];
-        const { data: currentTransactions } = await supabase
-          .from('transactions')
-          .select('transaction_count')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .single();
+        const { data: currentCount, error: countError } = await supabase
+          .rpc('get_daily_count');
           
-        const currentCount = currentTransactions?.transaction_count || 0;
-        console.log('Current transaction count:', currentCount);
+        const currentTransactionCount = currentCount || 0;
+        console.log('Current transaction count:', currentTransactionCount);
         
         toast({
           title: "Limit Tercapai",
-          description: `Batas transaksi harian telah tercapai (${currentCount}/20). Upgrade ke Premium untuk transaksi unlimited.`,
+          description: `Batas transaksi harian telah tercapai (${currentTransactionCount}/20). Upgrade ke Premium untuk transaksi unlimited.`,
           variant: "destructive",
         });
         return false;

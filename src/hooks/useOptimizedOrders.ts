@@ -1,3 +1,4 @@
+
 import { useOptimizedQuery } from './useOptimizedQuery';
 import { useOrderOperations } from './useOrderOperations';
 import { useQueryClient } from '@tanstack/react-query';
@@ -65,7 +66,7 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
     finished_at: item.finished_at
   }));
 
-  // Optimized real-time subscription
+  // Fixed real-time subscription with proper filter format
   useEffect(() => {
     let channel: any = null;
     
@@ -73,30 +74,37 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      console.log(`Setting up real-time for ${businessType} orders, user: ${user.id}`);
+
       channel = supabase
-        .channel(`orders_optimized_${businessType}_${user.id}`)
+        .channel(`orders_optimized_${businessType}_${user.id}_${Date.now()}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `user_id=eq.${user.id} AND business_type=eq.${businessType}`
+          filter: `user_id=eq.${user.id}`
         }, (payload) => {
-          console.log('Order real-time update:', payload.eventType);
+          console.log('Order real-time update:', payload.eventType, payload);
           
-          // Throttled invalidation
-          setTimeout(() => {
-            queryClient.invalidateQueries({ 
-              queryKey: ['orders', businessType] 
-            });
-          }, 100);
+          // Only invalidate if it's for this business type
+          if (payload.new?.business_type === businessType || payload.old?.business_type === businessType) {
+            setTimeout(() => {
+              queryClient.invalidateQueries({ 
+                queryKey: ['orders', businessType] 
+              });
+            }, 100);
+          }
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log(`Real-time subscription status for ${businessType}:`, status);
+        });
     };
 
     setupRealtime();
     
     return () => {
       if (channel) {
+        console.log(`Cleaning up real-time channel for ${businessType}`);
         supabase.removeChannel(channel);
       }
     };

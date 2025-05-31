@@ -319,6 +319,10 @@ export type Database = {
         Args: { business_prefix: string }
         Returns: string
       }
+      get_daily_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       increment_daily_count: {
         Args: Record<PropertyKey, never>
         Returns: undefined

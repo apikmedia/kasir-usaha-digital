@@ -29,7 +29,7 @@ const WarungOrdersHistory = () => {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  // Enhanced real-time updates for warung orders with faster response
+  // Fixed real-time updates with proper filter
   useEffect(() => {
     let channel: any = null;
     
@@ -37,28 +37,30 @@ const WarungOrdersHistory = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      console.log('Setting up enhanced real-time for warung orders history');
+      console.log('Setting up real-time for warung orders history');
 
       channel = supabase
-        .channel(`warung_orders_history_enhanced_${user.id}_${Date.now()}`)
+        .channel(`warung_orders_history_${user.id}_${Date.now()}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `user_id=eq.${user.id} AND business_type=eq.warung`
+          filter: `user_id=eq.${user.id}`
         }, (payload) => {
           console.log('Warung order real-time update received:', payload.eventType, payload);
           
-          // Immediate refresh without debouncing for faster response
-          setRefreshTrigger(prev => prev + 1);
-          
-          // Also trigger manual refetch for immediate update
-          setTimeout(() => {
-            refetch();
-          }, 100);
+          // Only refresh if it's a warung order
+          if (payload.new?.business_type === 'warung' || payload.old?.business_type === 'warung') {
+            setRefreshTrigger(prev => prev + 1);
+            
+            // Also trigger manual refetch for immediate update
+            setTimeout(() => {
+              refetch();
+            }, 100);
+          }
         })
         .subscribe((status) => {
-          console.log('Enhanced warung orders history realtime subscription status:', status);
+          console.log('Warung orders history realtime subscription status:', status);
         });
     };
 
