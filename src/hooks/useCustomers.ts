@@ -11,7 +11,8 @@ export const useCustomers = (businessType?: BusinessType) => {
     setCustomers, 
     loading, 
     currentUserId, 
-    fetchCustomers
+    fetchCustomers,
+    removeCustomer
   } = useCustomerData(businessType);
   
   const { 
@@ -42,12 +43,20 @@ export const useCustomers = (businessType?: BusinessType) => {
 
   const deleteCustomer = async (id: string) => {
     console.log('Deleting customer:', id);
+    
+    // Immediately remove from local state for instant UI feedback
+    removeCustomer(id);
+    
     const result = await deleteCustomerOperation(id);
     if (result) {
       console.log('Customer deleted successfully');
       return true;
+    } else {
+      // If delete failed, refresh data to restore the item
+      console.log('Delete failed, refreshing data');
+      await fetchCustomers();
+      return false;
     }
-    return false;
   };
 
   return {

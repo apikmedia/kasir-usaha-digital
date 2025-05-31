@@ -44,7 +44,6 @@ export const useCustomerOperations = () => {
         description: "Pelanggan berhasil ditambahkan",
       });
       
-      // Real-time subscription will handle adding to state
       return data;
     } catch (error) {
       console.error('Error creating customer:', error);
@@ -81,7 +80,6 @@ export const useCustomerOperations = () => {
         description: "Data pelanggan berhasil diperbarui",
       });
       
-      // Real-time subscription will handle updating state
       return data;
     } catch (error) {
       console.error('Error updating customer:', error);
@@ -97,6 +95,20 @@ export const useCustomerOperations = () => {
   const deleteCustomer = async (id: string) => {
     try {
       console.log('Starting customer delete operation for ID:', id);
+
+      // First verify the customer exists and belongs to the current user
+      const { data: existingCustomer, error: fetchError } = await supabase
+        .from('customers')
+        .select('id, name, user_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !existingCustomer) {
+        console.error('Customer not found or fetch error:', fetchError);
+        throw new Error('Customer tidak ditemukan');
+      }
+
+      console.log('Found customer to delete:', existingCustomer);
 
       const { error } = await supabase
         .from('customers')
@@ -115,7 +127,6 @@ export const useCustomerOperations = () => {
         description: "Pelanggan berhasil dihapus",
       });
       
-      // Real-time subscription will handle removing from state
       return true;
     } catch (error) {
       console.error('Error deleting customer:', error);

@@ -6,13 +6,33 @@ import { Trash2 } from "lucide-react";
 import { useCustomers } from '@/hooks/useCustomers';
 import CuciMotorAddCustomerDialog from '@/components/CuciMotorAddCustomerDialog';
 import CuciMotorEditCustomerDialog from '@/components/CuciMotorEditCustomerDialog';
+import { useState } from 'react';
 
 const CuciMotorCustomersList = () => {
   const { customers, loading, deleteCustomer } = useCustomers('cuci_motor');
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus pelanggan "${name}"?`)) {
-      await deleteCustomer(id);
+      console.log('Starting delete operation for customer:', id);
+      setDeletingIds(prev => new Set(prev).add(id));
+      
+      try {
+        const success = await deleteCustomer(id);
+        if (success) {
+          console.log('Delete operation completed successfully');
+        } else {
+          console.log('Delete operation failed');
+        }
+      } catch (error) {
+        console.error('Error during delete operation:', error);
+      } finally {
+        setDeletingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          return newSet;
+        });
+      }
     }
   };
 
@@ -46,7 +66,7 @@ const CuciMotorCustomersList = () => {
             </TableHeader>
             <TableBody>
               {customers.map((customer) => (
-                <TableRow key={customer.id}>
+                <TableRow key={customer.id} className={deletingIds.has(customer.id) ? 'opacity-50' : ''}>
                   <TableCell className="font-medium">{customer.name}</TableCell>
                   <TableCell>{customer.phone || '-'}</TableCell>
                   <TableCell>{customer.email || '-'}</TableCell>
@@ -59,6 +79,7 @@ const CuciMotorCustomersList = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDelete(customer.id, customer.name)}
+                        disabled={deletingIds.has(customer.id)}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
