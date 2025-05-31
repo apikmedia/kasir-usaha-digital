@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit } from "lucide-react";
-import { useProducts, Product } from '@/hooks/useProducts';
+import { useOptimizedProducts, Product } from '@/hooks/useOptimizedProducts';
 
 interface WarungEditProductDialogProps {
   product: Product;
 }
 
 const WarungEditProductDialog = ({ product }: WarungEditProductDialogProps) => {
-  const { updateProduct } = useProducts();
+  const { updateProduct } = useOptimizedProducts();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: product.name,

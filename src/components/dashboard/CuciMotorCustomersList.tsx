@@ -3,14 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { useCustomers } from '@/hooks/useCustomers';
+import { useOptimizedCustomers } from '@/hooks/customers/useOptimizedCustomers';
 import CuciMotorAddCustomerDialog from '@/components/CuciMotorAddCustomerDialog';
 import CuciMotorEditCustomerDialog from '@/components/CuciMotorEditCustomerDialog';
 import OptimizedLoader from '@/components/ui/OptimizedLoader';
 import { useState } from 'react';
 
 const CuciMotorCustomersList = () => {
-  const { customers, loading, deleteCustomer, error } = useCustomers('cuci_motor');
+  const { customers, loading, deleteCustomer, error } = useOptimizedCustomers('cuci_motor');
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const handleDelete = async (id: string, name: string) => {

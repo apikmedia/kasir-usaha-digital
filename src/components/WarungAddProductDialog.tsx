@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-import { useProducts } from '@/hooks/useProducts';
+import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
 
 const WarungAddProductDialog = () => {
-  const { createProduct } = useProducts();
+  const { createProduct } = useOptimizedProducts();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',

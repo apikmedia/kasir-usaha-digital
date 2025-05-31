@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOrders } from '@/hooks/useOrders';
-import { useProducts } from '@/hooks/useProducts';
+import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
+import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
 import WarungCart from './WarungCart';
 import WarungProductGrid from './WarungProductGrid';
 
@@ -12,8 +12,8 @@ interface CartItem {
 }
 
 const WarungCashier = () => {
-  const { createOrder } = useOrders('warung');
-  const { products, loading: productsLoading, updateStock } = useProducts();
+  const { createOrder } = useOptimizedOrders('warung');
+  const { products, loading: productsLoading, updateStock } = useOptimizedProducts();
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = (product: any) => {

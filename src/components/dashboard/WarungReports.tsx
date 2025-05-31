@@ -1,22 +1,21 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useOrders } from '@/hooks/useOrders';
-import { useProducts } from '@/hooks/useProducts';
+import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
+import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
 import { useMemo } from 'react';
+import OptimizedLoader from '@/components/ui/OptimizedLoader';
 
 const StatCardSkeleton = () => (
   <Card>
     <CardContent className="p-4 text-center">
-      <Skeleton className="h-8 w-16 mx-auto mb-2" />
-      <Skeleton className="h-4 w-24 mx-auto" />
+      <OptimizedLoader type="list" count={1} />
     </CardContent>
   </Card>
 );
 
 const WarungReports = () => {
-  const { orders, loading: ordersLoading } = useOrders('warung');
-  const { products, loading: productsLoading } = useProducts();
+  const { orders, loading: ordersLoading } = useOptimizedOrders('warung');
+  const { products, loading: productsLoading } = useOptimizedProducts();
 
   const stats = useMemo(() => {
     const formatCurrency = (amount: number) => {

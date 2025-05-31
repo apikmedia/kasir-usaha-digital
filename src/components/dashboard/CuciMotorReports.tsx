@@ -1,14 +1,15 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useOrders } from '@/hooks/useOrders';
-import { useServices } from '@/hooks/useServices';
-import { useCustomers } from '@/hooks/useCustomers';
+import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
+import { useOptimizedServices } from '@/hooks/services/useOptimizedServices';
+import { useOptimizedCustomers } from '@/hooks/customers/useOptimizedCustomers';
+import OptimizedLoader from '@/components/ui/OptimizedLoader';
 
 const CuciMotorReports = () => {
-  const { orders } = useOrders('cuci_motor');
-  const { services } = useServices('cuci_motor');
-  const { customers } = useCustomers('cuci_motor'); // Fixed: Added business type filter
+  const { orders, loading: ordersLoading } = useOptimizedOrders('cuci_motor');
+  const { services, loading: servicesLoading } = useOptimizedServices('cuci_motor');
+  const { customers, loading: customersLoading } = useOptimizedCustomers('cuci_motor');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -17,6 +18,8 @@ const CuciMotorReports = () => {
       minimumFractionDigits: 0
     }).format(amount);
   };
+
+  const isLoading = ordersLoading || servicesLoading || customersLoading;
 
   // Calculate stats
   const stats = {
@@ -48,6 +51,31 @@ const CuciMotorReports = () => {
     { name: 'Proses', value: orders.filter(o => o.status === 'proses').length, color: '#DBEAFE' },
     { name: 'Selesai', value: orders.filter(o => o.status === 'selesai').length, color: '#D1FAE5' }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <OptimizedLoader type="list" count={1} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <OptimizedLoader type="list" count={3} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
