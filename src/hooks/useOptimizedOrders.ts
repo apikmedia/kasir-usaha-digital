@@ -90,8 +90,11 @@ export const useOptimizedOrders = (businessType: BusinessType) => {
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
           const record = payload.new || payload.old;
-          if (record && record.business_type === businessType) {
-            invalidateAndRefresh();
+          // Add type guard to safely check business_type
+          if (record && typeof record === 'object' && 'business_type' in record) {
+            if (record.business_type === businessType) {
+              invalidateAndRefresh();
+            }
           }
         })
         .subscribe();
