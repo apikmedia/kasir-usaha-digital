@@ -14,9 +14,10 @@ interface UseOrdersPaginationProps {
   businessType: BusinessType;
   page: number;
   pageSize: number;
+  refreshTrigger?: number;
 }
 
-export const useOrdersPagination = ({ businessType, page, pageSize }: UseOrdersPaginationProps) => {
+export const useOrdersPagination = ({ businessType, page, pageSize, refreshTrigger }: UseOrdersPaginationProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -55,7 +56,7 @@ export const useOrdersPagination = ({ businessType, page, pageSize }: UseOrdersP
   };
 
   const ordersQuery = useQuery({
-    queryKey: ['orders', businessType, page, pageSize],
+    queryKey: ['orders', businessType, page, pageSize, refreshTrigger],
     queryFn: fetchOrders,
     staleTime: 30000, // 30 seconds
     gcTime: 300000, // 5 minutes
