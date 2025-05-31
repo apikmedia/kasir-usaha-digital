@@ -1,6 +1,5 @@
 
 import { useServiceData } from './services/useServiceData';
-import { useServiceRealtime } from './services/useServiceRealtime';
 import { useServiceOperations } from './services/useServiceOperations';
 import type { BusinessType } from './services/types';
 
@@ -16,14 +15,6 @@ export const useServices = (businessType: BusinessType) => {
     updateServiceInState,
     removeService
   } = useServiceData(businessType);
-
-  useServiceRealtime({
-    businessType,
-    currentUserId,
-    addService,
-    updateServiceInState,
-    removeService
-  });
 
   const {
     createService,

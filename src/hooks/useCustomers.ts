@@ -1,7 +1,6 @@
 
 import { useCustomerData } from './customers/useCustomerData';
 import { useCustomerOperations } from './customers/useCustomerOperations';
-import { useCustomerRealtime } from './customers/useCustomerRealtime';
 import type { BusinessType } from '@/types/customer';
 
 export { type Customer } from '@/types/customer';
@@ -13,9 +12,9 @@ export const useCustomers = (businessType?: BusinessType) => {
     loading, 
     currentUserId, 
     fetchCustomers, 
-    addCustomer, 
+    addCustomer: addCustomerToState, 
     updateCustomer: updateCustomerInState, 
-    removeCustomer 
+    removeCustomer: removeCustomerFromState
   } = useCustomerData(businessType);
   
   const { 
@@ -23,34 +22,32 @@ export const useCustomers = (businessType?: BusinessType) => {
     updateCustomer: updateCustomerOperation, 
     deleteCustomer: deleteCustomerOperation 
   } = useCustomerOperations();
-  
-  useCustomerRealtime({ businessType, currentUserId, setCustomers });
 
   const createCustomer = async (customerData: any) => {
+    console.log('Creating customer:', customerData);
     const result = await createCustomerOperation(customerData);
     if (result && typeof result === 'object') {
-      // Immediately add to local state for instant UI update
-      addCustomer(result);
+      console.log('Customer created successfully, will be added via real-time subscription');
       return result;
     }
     return false;
   };
 
   const updateCustomer = async (id: string, customerData: any) => {
+    console.log('Updating customer:', id, customerData);
     const result = await updateCustomerOperation(id, customerData);
     if (result && typeof result === 'object') {
-      // Immediately update local state
-      updateCustomerInState(result);
+      console.log('Customer updated successfully, will be updated via real-time subscription');
       return result;
     }
     return false;
   };
 
   const deleteCustomer = async (id: string) => {
+    console.log('Deleting customer:', id);
     const result = await deleteCustomerOperation(id);
     if (result) {
-      // Immediately remove from local state
-      removeCustomer(id);
+      console.log('Customer deleted successfully, will be removed via real-time subscription');
       return true;
     }
     return false;

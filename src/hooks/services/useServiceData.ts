@@ -54,18 +54,71 @@ export const useServiceData = (businessType: BusinessType) => {
   };
 
   const addService = (newService: Service) => {
+    console.log('Adding service to state:', newService);
     setServices(prev => [...prev, newService].sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   const updateServiceInState = (updatedService: Service) => {
+    console.log('Updating service in state:', updatedService);
     setServices(prev => prev.map(service => 
       service.id === updatedService.id ? updatedService : service
     ).sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   const removeService = (serviceId: string) => {
+    console.log('Removing service from state:', serviceId);
     setServices(prev => prev.filter(service => service.id !== serviceId));
   };
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    console.log('Setting up service real-time subscription for:', businessType);
+
+    const channel = supabase
+      .channel(`services-${businessType}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'services',
+          filter: `business_type=eq.${businessType}`
+        },
+        (payload) => {
+          console.log('Real-time services update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newServiceData = payload.new as any;
+            if (newServiceData && newServiceData.user_id === currentUserId) {
+              console.log('Adding new service to state:', newServiceData);
+              addService(newServiceData as Service);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedServiceData = payload.new as any;
+            if (updatedServiceData && updatedServiceData.user_id === currentUserId) {
+              console.log('Updating service in state:', updatedServiceData);
+              updateServiceInState(updatedServiceData as Service);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedServiceData = payload.old as any;
+            if (deletedServiceData && deletedServiceData.user_id === currentUserId) {
+              console.log('Removing service from state:', deletedServiceData.id);
+              removeService(deletedServiceData.id);
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Service subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up service subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [businessType, currentUserId]);
 
   useEffect(() => {
     const initializeUser = async () => {
