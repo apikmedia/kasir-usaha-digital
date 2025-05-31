@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { BusinessType, Customer } from '@/types/customer';
+import type { BusinessType } from '@/types/customer';
 import { useCustomerFetch } from './useCustomerFetch';
 import { useCustomerState } from './useCustomerState';
 
@@ -18,22 +18,31 @@ export const useCustomerData = (businessType?: BusinessType) => {
   } = useCustomerState();
 
   const initializeAndFetch = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUserId(user?.id || null);
-    
-    if (user?.id) {
-      const fetchedCustomers = await fetchCustomers();
-      setCustomers(fetchedCustomers);
+    console.log('Initializing customer data...');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+      setCurrentUserId(user?.id || null);
+      
+      if (user?.id) {
+        const fetchedCustomers = await fetchCustomers();
+        console.log('Fetched customers:', fetchedCustomers);
+        setCustomers(fetchedCustomers);
+      }
+    } catch (error) {
+      console.error('Error initializing customer data:', error);
     }
   };
 
   // Set up real-time subscription
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      console.log('No current user, skipping real-time subscription');
+      return;
+    }
 
     console.log('Setting up customer real-time subscription for business type:', businessType, 'user:', currentUserId);
 
-    // Create a unique channel name that includes timestamp to avoid conflicts
     const channelName = `customers-realtime-${businessType || 'all'}-${currentUserId}-${Date.now()}`;
     
     const channel = supabase
@@ -49,30 +58,34 @@ export const useCustomerData = (businessType?: BusinessType) => {
         (payload) => {
           console.log('Real-time customers update received:', payload);
           
-          if (payload.eventType === 'INSERT') {
-            const newCustomerData = payload.new as any;
-            if (newCustomerData && 
-                (!businessType || newCustomerData.business_type === businessType)) {
-              console.log('Adding new customer to state:', newCustomerData);
-              addCustomer(newCustomerData);
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedCustomerData = payload.new as any;
-            if (updatedCustomerData) {
-              console.log('Updating customer in state:', updatedCustomerData);
-              if (!businessType || updatedCustomerData.business_type === businessType) {
-                updateCustomer(updatedCustomerData);
-              } else {
-                // If business type changed and doesn't match filter, remove from list
-                removeCustomer(updatedCustomerData.id);
+          try {
+            if (payload.eventType === 'INSERT') {
+              const newCustomerData = payload.new as any;
+              if (newCustomerData && 
+                  (!businessType || newCustomerData.business_type === businessType)) {
+                console.log('Adding new customer to state:', newCustomerData);
+                addCustomer(newCustomerData);
+              }
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedCustomerData = payload.new as any;
+              if (updatedCustomerData) {
+                console.log('Updating customer in state:', updatedCustomerData);
+                if (!businessType || updatedCustomerData.business_type === businessType) {
+                  updateCustomer(updatedCustomerData);
+                } else {
+                  // If business type changed and doesn't match filter, remove from list
+                  removeCustomer(updatedCustomerData.id);
+                }
+              }
+            } else if (payload.eventType === 'DELETE') {
+              const deletedCustomerData = payload.old as any;
+              if (deletedCustomerData) {
+                console.log('Removing customer from state:', deletedCustomerData.id);
+                removeCustomer(deletedCustomerData.id);
               }
             }
-          } else if (payload.eventType === 'DELETE') {
-            const deletedCustomerData = payload.old as any;
-            if (deletedCustomerData) {
-              console.log('Removing customer from state:', deletedCustomerData.id);
-              removeCustomer(deletedCustomerData.id);
-            }
+          } catch (error) {
+            console.error('Error handling real-time customer update:', error);
           }
         }
       )
@@ -82,7 +95,11 @@ export const useCustomerData = (businessType?: BusinessType) => {
 
     return () => {
       console.log('Cleaning up customer subscription');
-      supabase.removeChannel(channel);
+      try {
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error('Error cleaning up customer subscription:', error);
+      }
     };
   }, [currentUserId, businessType, addCustomer, updateCustomer, removeCustomer]);
 
