@@ -60,8 +60,8 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
 
   // Real-time updates without affecting loading
   useEffect(() => {
-    const { data: { user } } = supabase.auth.getUser();
-    user.then(({ data: { user } }) => {
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const channel = supabase
@@ -84,7 +84,9 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
       return () => {
         supabase.removeChannel(channel);
       };
-    });
+    };
+
+    setupRealtime();
   }, [cacheKey]);
 
   return {

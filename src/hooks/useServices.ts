@@ -1,7 +1,7 @@
 
 import { useInstantServices } from './services/useInstantServices';
 import { useServiceOperations } from './services/useServiceOperations';
-import type { BusinessType } from './services/types';
+import type { BusinessType, Service } from './services/types';
 
 export type { Service } from './services/types';
 
@@ -35,13 +35,13 @@ export const useServices = (businessType: BusinessType) => {
   return {
     services,
     loading, // Always false
-    createService: async (...args: any[]) => {
-      const result = await createService(...args);
+    createService: async (serviceData: Omit<Service, 'id' | 'business_type' | 'user_id'>) => {
+      const result = await createService(serviceData);
       invalidate();
       return result;
     },
-    updateService: async (...args: any[]) => {
-      const result = await updateService(...args);
+    updateService: async (id: string, serviceData: Partial<Omit<Service, 'id' | 'business_type' | 'user_id'>>) => {
+      const result = await updateService(id, serviceData);
       invalidate();
       return result;
     },
