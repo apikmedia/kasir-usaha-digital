@@ -1,13 +1,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2 } from "lucide-react";
 import { useServices } from '@/hooks/useServices';
 import LaundryAddServiceDialog from '@/components/LaundryAddServiceDialog';
 import LaundryEditServiceDialog from '@/components/LaundryEditServiceDialog';
 
 const LaundryServicesList = () => {
-  const { services, loading, deleteService } = useServices('laundry');
+  const { services, deleteService } = useServices('laundry');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -23,6 +24,9 @@ const LaundryServicesList = () => {
     }
   };
 
+  // Show skeleton only when no data is available
+  const showSkeleton = services.length === 0;
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -33,8 +37,21 @@ const LaundryServicesList = () => {
         <LaundryAddServiceDialog />
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="text-center py-4">Memuat data...</div>
+        {showSkeleton ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-5 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services.map((service) => (

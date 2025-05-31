@@ -18,7 +18,7 @@ class GlobalCacheManager {
     return GlobalCacheManager.instance;
   }
 
-  set<T>(key: string, data: T, ttl: number = 60000): void {
+  set<T>(key: string, data: T, ttl: number = 30000): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -59,6 +59,26 @@ class GlobalCacheManager {
       this.set(key, data, ttl);
       return data;
     });
+  }
+
+  // Add method to check if data is fresh
+  isFresh(key: string, maxAge: number = 5000): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) return false;
+    return (Date.now() - entry.timestamp) < maxAge;
+  }
+
+  // Preemptively refresh data that's about to expire
+  scheduleRefresh<T>(key: string, fetchFn: () => Promise<T>, ttl: number): void {
+    const refreshTime = ttl * 0.8; // Refresh at 80% of TTL
+    setTimeout(async () => {
+      try {
+        const data = await fetchFn();
+        this.set(key, data, ttl);
+      } catch (error) {
+        console.warn(`Failed to preemptively refresh ${key}:`, error);
+      }
+    }, refreshTime);
   }
 }
 

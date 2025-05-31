@@ -14,7 +14,7 @@ export const useInstantData = <T>({
   cacheKey,
   fetchFn,
   defaultData,
-  ttl = 30000,
+  ttl = 15000, // Reduced default TTL
   autoRefresh = true
 }: InstantDataOptions<T>) => {
   const cache = useGlobalCache();
@@ -25,14 +25,20 @@ export const useInstantData = <T>({
   
   const isInitialMount = useRef(true);
   const refreshTimer = useRef<NodeJS.Timeout>();
+  const isFetching = useRef(false);
 
   const refresh = async (silent = false) => {
+    if (isFetching.current) return;
+    
     try {
+      isFetching.current = true;
       const freshData = await fetchFn();
       cache.set(cacheKey, freshData, ttl);
       setData(freshData);
     } catch (error) {
       console.error(`Error refreshing ${cacheKey}:`, error);
+    } finally {
+      isFetching.current = false;
     }
   };
 
@@ -40,22 +46,22 @@ export const useInstantData = <T>({
     if (isInitialMount.current) {
       isInitialMount.current = false;
       
-      // Check if we have cached data
+      // Check cache first
       const cached = cache.get<T>(cacheKey);
       if (cached) {
         setData(cached);
-        
-        // Silently refresh in background
+        // Immediate background refresh for fresh data
         if (autoRefresh) {
-          refresh(true);
+          setTimeout(() => refresh(true), 100);
         }
       } else {
-        // No cached data, fetch immediately
+        // No cache, fetch immediately
         refresh();
       }
       
+      // Set up auto-refresh with shorter interval
       if (autoRefresh) {
-        refreshTimer.current = setInterval(() => refresh(true), ttl);
+        refreshTimer.current = setInterval(() => refresh(true), ttl * 0.8);
       }
     }
 
@@ -69,6 +75,9 @@ export const useInstantData = <T>({
   return {
     data,
     refresh: () => refresh(false),
-    invalidate: () => cache.invalidate(cacheKey)
+    invalidate: () => {
+      cache.invalidate(cacheKey);
+      refresh();
+    }
   };
 };

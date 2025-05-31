@@ -3,12 +3,10 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useInstantData } from '../useInstantData';
-import { useGlobalCache } from '../cache/useGlobalCache';
 import type { Customer, BusinessType } from '@/types/customer';
 
 export const useInstantCustomers = (businessType?: BusinessType) => {
   const { toast } = useToast();
-  const cache = useGlobalCache();
   
   const cacheKey = businessType ? `customers_${businessType}` : 'customers_all';
 
@@ -25,7 +23,7 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
       query = query.eq('business_type', businessType);
     }
 
-    const { data, error } = await query.order('name').limit(500);
+    const { data, error } = await query.order('name').limit(200);
 
     if (error) {
       console.error('Error fetching customers:', error);
@@ -55,17 +53,20 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
     cacheKey,
     fetchFn: fetchCustomers,
     defaultData: [] as Customer[],
-    ttl: 20000
+    ttl: 15000,
+    autoRefresh: true
   });
 
-  // Real-time updates without affecting loading
+  // Optimized real-time updates
   useEffect(() => {
+    let channel: any = null;
+    
     const setupRealtime = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const channel = supabase
-        .channel(`customers-instant-${cacheKey}`)
+      channel = supabase
+        .channel(`customers-instant-${cacheKey}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -74,24 +75,26 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
             table: 'customers',
             filter: `user_id=eq.${user.id}`
           },
-          () => {
-            // Silent background refresh
-            refresh();
+          (payload) => {
+            console.log('Real-time customer update:', payload);
+            setTimeout(() => refresh(), 50);
           }
         )
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     };
 
     setupRealtime();
-  }, [cacheKey]);
+    
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [cacheKey, refresh]);
 
   return {
     customers,
-    loading: false, // Never show loading
+    loading: false,
     refetch: refresh,
     invalidate
   };

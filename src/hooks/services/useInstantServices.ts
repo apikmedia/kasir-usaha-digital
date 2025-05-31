@@ -16,12 +16,12 @@ export const useInstantServices = (businessType: BusinessType) => {
 
     const { data, error } = await supabase
       .from('services')
-      .select('*')
+      .select('id, name, description, price, unit, estimated_duration, is_active, business_type, user_id, created_at, updated_at')
       .eq('business_type', businessType)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('name')
-      .limit(200);
+      .limit(100);
 
     if (error) {
       console.error('Error fetching services:', error);
@@ -40,17 +40,20 @@ export const useInstantServices = (businessType: BusinessType) => {
     cacheKey,
     fetchFn: fetchServices,
     defaultData: [] as Service[],
-    ttl: 25000
+    ttl: 15000, // Reduce TTL for faster updates
+    autoRefresh: true
   });
 
-  // Real-time updates
+  // Optimized real-time updates with immediate refresh
   useEffect(() => {
+    let channel: any = null;
+    
     const setupRealtime = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const channel = supabase
-        .channel(`services-instant-${businessType}`)
+      channel = supabase
+        .channel(`services-instant-${businessType}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -59,19 +62,27 @@ export const useInstantServices = (businessType: BusinessType) => {
             table: 'services',
             filter: `user_id=eq.${user.id}`
           },
-          () => {
-            refresh();
+          (payload) => {
+            console.log('Real-time service update:', payload);
+            // Immediate refresh for faster updates
+            setTimeout(() => refresh(), 50);
           }
         )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Services real-time subscription ready');
+          }
+        });
     };
 
     setupRealtime();
-  }, [businessType]);
+    
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [businessType, refresh]);
 
   return {
     services,
