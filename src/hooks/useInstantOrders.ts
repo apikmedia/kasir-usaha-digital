@@ -20,7 +20,7 @@ export const useInstantOrders = (businessType: BusinessType) => {
       .eq('business_type', businessType)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(200); // Increased limit for better UX
+      .limit(100); // Reduced limit for faster loading
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -35,15 +35,15 @@ export const useInstantOrders = (businessType: BusinessType) => {
     return data || [];
   };
 
-  const { data: orders, refresh, invalidate } = useInstantData({
+  const { data: orders, isLoading, refresh, invalidate } = useInstantData({
     cacheKey,
     fetchFn: fetchOrders,
     defaultData: [] as Order[],
-    ttl: 300000, // 5 minutes cache
-    autoRefresh: false
+    ttl: 60000, // 1 minute cache for faster updates
+    autoRefresh: true
   });
 
-  // Real-time updates - only invalidate cache
+  // Enhanced real-time updates with immediate refresh
   useEffect(() => {
     let channel: any = null;
     
@@ -52,7 +52,7 @@ export const useInstantOrders = (businessType: BusinessType) => {
       if (!user) return;
 
       channel = supabase
-        .channel(`orders-instant-${businessType}-${Date.now()}`)
+        .channel(`orders-realtime-${businessType}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -62,18 +62,22 @@ export const useInstantOrders = (businessType: BusinessType) => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Order real-time update:', payload.eventType);
-            // Only invalidate cache for orders that match our business type with proper type checking
+            console.log('Order real-time update:', payload.eventType, payload);
+            
             const newRecord = payload.new as any;
             const oldRecord = payload.old as any;
             
+            // Immediate update for relevant business type
             if ((newRecord && newRecord.business_type === businessType) || 
                 (oldRecord && oldRecord.business_type === businessType)) {
-              invalidate();
+              console.log('Triggering immediate order refresh');
+              invalidate(); // This now auto-refreshes
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Orders realtime subscription status:', status);
+        });
     };
 
     setupRealtime();
@@ -87,7 +91,7 @@ export const useInstantOrders = (businessType: BusinessType) => {
 
   return {
     orders,
-    loading: false,
+    loading: isLoading,
     refetch: refresh,
     invalidate
   };

@@ -18,7 +18,7 @@ class GlobalCacheManager {
     return GlobalCacheManager.instance;
   }
 
-  set<T>(key: string, data: T, ttl: number = 300000): void { // 5 minutes default
+  set<T>(key: string, data: T, ttl: number = 60000): void { // Reduced default to 1 minute
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -56,23 +56,16 @@ class GlobalCacheManager {
     }
   }
 
-  // Check if data is fresh (within 30 seconds)
-  isFresh(key: string, maxAge: number = 30000): boolean {
+  // Reduced freshness check to 5 seconds for more responsive updates
+  isFresh(key: string, maxAge: number = 5000): boolean {
     const entry = this.cache.get(key);
     if (!entry) return false;
     return (Date.now() - entry.timestamp) < maxAge;
   }
 
-  // Aggressive preloading
-  preload<T>(key: string, fetchFn: () => Promise<T>, ttl?: number): void {
-    if (this.get(key)) return; // Already cached
-    
-    fetchFn().then(data => {
-      this.set(key, data, ttl);
-      console.log(`Preloaded data for ${key}`);
-    }).catch(error => {
-      console.warn(`Failed to preload ${key}:`, error);
-    });
+  // Removed aggressive preloading to improve performance
+  hasKey(key: string): boolean {
+    return this.cache.has(key);
   }
 }
 

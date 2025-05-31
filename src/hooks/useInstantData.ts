@@ -14,8 +14,8 @@ export const useInstantData = <T>({
   cacheKey,
   fetchFn,
   defaultData,
-  ttl = 300000, // 5 minutes - much longer cache
-  autoRefresh = false // Disable auto refresh by default
+  ttl = 60000, // Reduced to 1 minute for faster updates
+  autoRefresh = true // Enable auto refresh for real-time feel
 }: InstantDataOptions<T>) => {
   const cache = useGlobalCache();
   const [data, setData] = useState<T>(() => {
@@ -23,6 +23,7 @@ export const useInstantData = <T>({
     return cached || defaultData;
   });
   
+  const [isLoading, setIsLoading] = useState(false);
   const isInitialMount = useRef(true);
   const isFetching = useRef(false);
 
@@ -31,40 +32,47 @@ export const useInstantData = <T>({
     
     try {
       isFetching.current = true;
+      if (!silent) setIsLoading(true);
+      
       const freshData = await fetchFn();
       cache.set(cacheKey, freshData, ttl);
       setData(freshData);
+      console.log(`Data refreshed for ${cacheKey}`);
     } catch (error) {
       console.error(`Error refreshing ${cacheKey}:`, error);
     } finally {
       isFetching.current = false;
+      if (!silent) setIsLoading(false);
     }
+  };
+
+  // Instant invalidate and refresh
+  const invalidateAndRefresh = async () => {
+    cache.invalidate(cacheKey);
+    await refresh(false); // Show loading during refresh
   };
 
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       
-      // Check cache first
+      // Check cache first, but always fetch fresh data
       const cached = cache.get<T>(cacheKey);
-      if (cached) {
+      if (cached && cache.isFresh(cacheKey, 10000)) { // Only use cache if very fresh (10 seconds)
         setData(cached);
-        console.log(`Using cached data for ${cacheKey}`);
-        return; // Don't fetch if we have fresh cache
+        console.log(`Using fresh cached data for ${cacheKey}`);
       } else {
-        // No cache, fetch immediately
+        // Fetch immediately for responsive experience
         console.log(`Fetching fresh data for ${cacheKey}`);
-        refresh();
+        refresh(false);
       }
     }
   }, [cacheKey]);
 
   return {
     data,
+    isLoading,
     refresh: () => refresh(false),
-    invalidate: () => {
-      cache.invalidate(cacheKey);
-      refresh();
-    }
+    invalidate: invalidateAndRefresh // Changed to auto-refresh after invalidation
   };
 };

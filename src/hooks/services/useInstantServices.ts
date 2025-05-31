@@ -21,7 +21,7 @@ export const useInstantServices = (businessType: BusinessType) => {
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('name')
-      .limit(200);
+      .limit(100); // Reduced limit for faster loading
 
     if (error) {
       console.error('Error fetching services:', error);
@@ -36,15 +36,15 @@ export const useInstantServices = (businessType: BusinessType) => {
     return data || [];
   };
 
-  const { data: services, refresh, invalidate } = useInstantData({
+  const { data: services, isLoading, refresh, invalidate } = useInstantData({
     cacheKey,
     fetchFn: fetchServices,
     defaultData: [] as Service[],
-    ttl: 300000, // 5 minutes cache
-    autoRefresh: false
+    ttl: 60000, // 1 minute cache for faster updates
+    autoRefresh: true
   });
 
-  // Real-time updates - only invalidate cache
+  // Enhanced real-time updates with immediate refresh
   useEffect(() => {
     let channel: any = null;
     
@@ -53,7 +53,7 @@ export const useInstantServices = (businessType: BusinessType) => {
       if (!user) return;
 
       channel = supabase
-        .channel(`services-instant-${businessType}-${Date.now()}`)
+        .channel(`services-realtime-${businessType}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -63,18 +63,22 @@ export const useInstantServices = (businessType: BusinessType) => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Service real-time update:', payload.eventType);
-            // Only invalidate if it affects our business type with proper type checking
+            console.log('Service real-time update:', payload.eventType, payload);
+            
             const newRecord = payload.new as any;
             const oldRecord = payload.old as any;
             
+            // Immediate update for relevant business type
             if ((newRecord && newRecord.business_type === businessType) || 
                 (oldRecord && oldRecord.business_type === businessType)) {
-              invalidate();
+              console.log('Triggering immediate service refresh');
+              invalidate(); // This now auto-refreshes
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Services realtime subscription status:', status);
+        });
     };
 
     setupRealtime();
@@ -88,7 +92,7 @@ export const useInstantServices = (businessType: BusinessType) => {
 
   return {
     services,
-    loading: false,
+    loading: isLoading,
     refetch: refresh,
     invalidate
   };

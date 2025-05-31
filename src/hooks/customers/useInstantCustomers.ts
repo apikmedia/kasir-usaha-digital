@@ -23,7 +23,7 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
       query = query.eq('business_type', businessType);
     }
 
-    const { data, error } = await query.order('name').limit(500);
+    const { data, error } = await query.order('name').limit(200); // Reduced limit
 
     if (error) {
       console.error('Error fetching customers:', error);
@@ -49,15 +49,15 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
     }));
   };
 
-  const { data: customers, refresh, invalidate } = useInstantData({
+  const { data: customers, isLoading, refresh, invalidate } = useInstantData({
     cacheKey,
     fetchFn: fetchCustomers,
     defaultData: [] as Customer[],
-    ttl: 300000, // 5 minutes cache
-    autoRefresh: false // No auto refresh
+    ttl: 60000, // 1 minute cache for faster updates
+    autoRefresh: true
   });
 
-  // Optimized real-time updates - only invalidate cache, don't auto-refresh
+  // Enhanced real-time updates with immediate refresh
   useEffect(() => {
     let channel: any = null;
     
@@ -66,7 +66,7 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
       if (!user) return;
 
       channel = supabase
-        .channel(`customers-optimized-${cacheKey}-${Date.now()}`)
+        .channel(`customers-realtime-${cacheKey}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -76,12 +76,25 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Customer real-time update:', payload.eventType);
-            // Only invalidate cache, let user manually refresh if needed
-            invalidate();
+            console.log('Customer real-time update:', payload.eventType, payload);
+            
+            const newRecord = payload.new as any;
+            const oldRecord = payload.old as any;
+            
+            // Check if update affects our business type filter
+            const affectsOurData = !businessType || 
+              (newRecord && newRecord.business_type === businessType) ||
+              (oldRecord && oldRecord.business_type === businessType);
+            
+            if (affectsOurData) {
+              console.log('Triggering immediate customer refresh');
+              invalidate(); // This now auto-refreshes
+            }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Customers realtime subscription status:', status);
+        });
     };
 
     setupRealtime();
@@ -91,11 +104,11 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
         supabase.removeChannel(channel);
       }
     };
-  }, [cacheKey, invalidate]);
+  }, [cacheKey, businessType, invalidate]);
 
   return {
     customers,
-    loading: false,
+    loading: isLoading,
     refetch: refresh,
     invalidate
   };

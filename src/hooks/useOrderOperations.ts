@@ -21,6 +21,12 @@ export const useOrderOperations = () => {
         return false;
       }
 
+      // Show immediate feedback
+      toast({
+        title: "Memproses",
+        description: "Sedang membuat pesanan...",
+      });
+
       console.log('Current user:', user.id);
 
       // Check daily limit first
@@ -44,7 +50,7 @@ export const useOrderOperations = () => {
         return false;
       }
 
-      // Generate order number using the fixed function
+      // Generate order number
       const businessPrefix = businessType === 'laundry' ? 'LDY' : 
                            businessType === 'warung' ? 'WRG' : 'CMT';
       
@@ -111,6 +117,12 @@ export const useOrderOperations = () => {
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     try {
       console.log('Updating order status:', orderId, status);
+      
+      // Show immediate feedback
+      toast({
+        title: "Memproses",
+        description: "Sedang memperbarui status pesanan...",
+      });
       
       const updateData: any = { status };
       if (status === 'selesai') {
