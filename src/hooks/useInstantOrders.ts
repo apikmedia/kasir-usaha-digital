@@ -20,7 +20,7 @@ export const useInstantOrders = (businessType: BusinessType) => {
       .eq('business_type', businessType)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(200); // Increased limit for better UX
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -39,31 +39,48 @@ export const useInstantOrders = (businessType: BusinessType) => {
     cacheKey,
     fetchFn: fetchOrders,
     defaultData: [] as Order[],
-    ttl: 15000
+    ttl: 300000, // 5 minutes cache
+    autoRefresh: false
   });
 
-  // Real-time updates
+  // Real-time updates - only invalidate cache
   useEffect(() => {
-    const channel = supabase
-      .channel(`orders-instant-${businessType}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `business_type=eq.${businessType}`
-        },
-        () => {
-          refresh();
-        }
-      )
-      .subscribe();
+    let channel: any = null;
+    
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    return () => {
-      supabase.removeChannel(channel);
+      channel = supabase
+        .channel(`orders-instant-${businessType}-${Date.now()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Order real-time update:', payload.eventType);
+            // Only invalidate cache for orders that match our business type
+            if (payload.new?.business_type === businessType || 
+                payload.old?.business_type === businessType) {
+              invalidate();
+            }
+          }
+        )
+        .subscribe();
     };
-  }, [businessType]);
+
+    setupRealtime();
+    
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [businessType, invalidate]);
 
   return {
     orders,

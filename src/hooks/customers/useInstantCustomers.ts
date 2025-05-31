@@ -23,7 +23,7 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
       query = query.eq('business_type', businessType);
     }
 
-    const { data, error } = await query.order('name').limit(200);
+    const { data, error } = await query.order('name').limit(500);
 
     if (error) {
       console.error('Error fetching customers:', error);
@@ -53,11 +53,11 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
     cacheKey,
     fetchFn: fetchCustomers,
     defaultData: [] as Customer[],
-    ttl: 15000,
-    autoRefresh: true
+    ttl: 300000, // 5 minutes cache
+    autoRefresh: false // No auto refresh
   });
 
-  // Optimized real-time updates
+  // Optimized real-time updates - only invalidate cache, don't auto-refresh
   useEffect(() => {
     let channel: any = null;
     
@@ -66,7 +66,7 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
       if (!user) return;
 
       channel = supabase
-        .channel(`customers-instant-${cacheKey}-${Date.now()}`)
+        .channel(`customers-optimized-${cacheKey}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -76,8 +76,9 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Real-time customer update:', payload);
-            setTimeout(() => refresh(), 50);
+            console.log('Customer real-time update:', payload.eventType);
+            // Only invalidate cache, let user manually refresh if needed
+            invalidate();
           }
         )
         .subscribe();
@@ -90,7 +91,7 @@ export const useInstantCustomers = (businessType?: BusinessType) => {
         supabase.removeChannel(channel);
       }
     };
-  }, [cacheKey, refresh]);
+  }, [cacheKey, invalidate]);
 
   return {
     customers,

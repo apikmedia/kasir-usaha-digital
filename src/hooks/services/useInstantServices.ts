@@ -21,7 +21,7 @@ export const useInstantServices = (businessType: BusinessType) => {
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('name')
-      .limit(100);
+      .limit(200);
 
     if (error) {
       console.error('Error fetching services:', error);
@@ -40,11 +40,11 @@ export const useInstantServices = (businessType: BusinessType) => {
     cacheKey,
     fetchFn: fetchServices,
     defaultData: [] as Service[],
-    ttl: 15000, // Reduce TTL for faster updates
-    autoRefresh: true
+    ttl: 300000, // 5 minutes cache
+    autoRefresh: false
   });
 
-  // Optimized real-time updates with immediate refresh
+  // Real-time updates - only invalidate cache
   useEffect(() => {
     let channel: any = null;
     
@@ -63,16 +63,15 @@ export const useInstantServices = (businessType: BusinessType) => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Real-time service update:', payload);
-            // Immediate refresh for faster updates
-            setTimeout(() => refresh(), 50);
+            console.log('Service real-time update:', payload.eventType);
+            // Only invalidate if it affects our business type
+            if (payload.new?.business_type === businessType || 
+                payload.old?.business_type === businessType) {
+              invalidate();
+            }
           }
         )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('Services real-time subscription ready');
-          }
-        });
+        .subscribe();
     };
 
     setupRealtime();
@@ -82,7 +81,7 @@ export const useInstantServices = (businessType: BusinessType) => {
         supabase.removeChannel(channel);
       }
     };
-  }, [businessType, refresh]);
+  }, [businessType, invalidate]);
 
   return {
     services,
