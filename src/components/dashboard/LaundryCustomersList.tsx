@@ -45,6 +45,7 @@ const LaundryCustomersList = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>No.</TableHead>
                 <TableHead>Nama</TableHead>
                 <TableHead>Telepon</TableHead>
                 <TableHead>Email</TableHead>
@@ -56,13 +57,14 @@ const LaundryCustomersList = () => {
             <TableBody>
               {customers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     Belum ada data pelanggan laundry
                   </TableCell>
                 </TableRow>
               ) : (
-                customers.map((customer) => (
+                customers.map((customer, index) => (
                   <TableRow key={customer.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell className="font-medium">{customer.name}</TableCell>
                     <TableCell>{customer.phone || '-'}</TableCell>
                     <TableCell>{customer.email || '-'}</TableCell>
