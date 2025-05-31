@@ -34,31 +34,32 @@ export const useOptimizedQuery = (config: QueryConfig) => {
       const from = pageParam * pageSize;
       const to = from + pageSize - 1;
 
-      // Use a simpler approach without complex type inference
-      const query = supabase
+      // Build query step by step to avoid type complexity
+      const baseQuery = supabase
         .from(config.table)
         .select(config.select || '*', { count: 'exact' })
         .eq('user_id', user.id);
 
-      // Apply filters if provided
-      let finalQuery = query;
+      // Apply filters
+      let queryWithFilters = baseQuery;
       if (config.filters) {
         Object.entries(config.filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            finalQuery = finalQuery.eq(key, value);
+            queryWithFilters = queryWithFilters.eq(key, value);
           }
         });
       }
 
-      // Apply ordering if provided
+      // Apply ordering
+      let queryWithOrder = queryWithFilters;
       if (config.orderBy) {
-        finalQuery = finalQuery.order(config.orderBy.column, { 
+        queryWithOrder = queryWithOrder.order(config.orderBy.column, { 
           ascending: config.orderBy.ascending ?? true 
         });
       }
 
-      // Apply pagination
-      const result = await finalQuery.range(from, to);
+      // Apply pagination and execute
+      const result = await queryWithOrder.range(from, to);
 
       if (result.error) throw result.error;
 
