@@ -53,22 +53,33 @@ export const useServiceData = (businessType: BusinessType) => {
     setServices(prev => {
       const exists = prev.find(s => s.id === newService.id);
       if (exists) {
+        console.log('Service already exists, skipping add');
         return prev;
       }
-      return [...prev, newService].sort((a, b) => a.name.localeCompare(b.name));
+      const updated = [...prev, newService].sort((a, b) => a.name.localeCompare(b.name));
+      console.log('Updated services after add:', updated);
+      return updated;
     });
   };
 
   const updateServiceInState = (updatedService: Service) => {
     console.log('Updating service in state:', updatedService);
-    setServices(prev => prev.map(service => 
-      service.id === updatedService.id ? updatedService : service
-    ).sort((a, b) => a.name.localeCompare(b.name)));
+    setServices(prev => {
+      const updated = prev.map(service => 
+        service.id === updatedService.id ? updatedService : service
+      ).sort((a, b) => a.name.localeCompare(b.name));
+      console.log('Updated services after update:', updated);
+      return updated;
+    });
   };
 
   const removeService = (serviceId: string) => {
     console.log('Removing service from state:', serviceId);
-    setServices(prev => prev.filter(service => service.id !== serviceId));
+    setServices(prev => {
+      const updated = prev.filter(service => service.id !== serviceId);
+      console.log('Updated services after remove:', updated);
+      return updated;
+    });
   };
 
   // Set up real-time subscription
@@ -77,8 +88,11 @@ export const useServiceData = (businessType: BusinessType) => {
 
     console.log('Setting up service real-time subscription for:', businessType, 'user:', currentUserId);
 
+    // Create a unique channel name that includes timestamp to avoid conflicts
+    const channelName = `services-realtime-${businessType}-${currentUserId}-${Date.now()}`;
+
     const channel = supabase
-      .channel(`services-realtime-${businessType}-${currentUserId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -116,6 +130,11 @@ export const useServiceData = (businessType: BusinessType) => {
       )
       .subscribe((status) => {
         console.log('Service subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to service real-time updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to service real-time updates');
+        }
       });
 
     return () => {

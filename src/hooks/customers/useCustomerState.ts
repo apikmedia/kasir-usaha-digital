@@ -7,6 +7,7 @@ export const useCustomerState = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const addCustomer = (newCustomer: any) => {
+    console.log('Adding customer to state:', newCustomer);
     // Type-cast the customer data to ensure proper typing
     const typedCustomer: Customer = {
       id: newCustomer.id,
@@ -20,10 +21,21 @@ export const useCustomerState = () => {
       created_at: newCustomer.created_at,
       updated_at: newCustomer.updated_at
     };
-    setCustomers(prev => [...prev, typedCustomer].sort((a, b) => a.name.localeCompare(b.name)));
+    
+    setCustomers(prev => {
+      const exists = prev.find(c => c.id === typedCustomer.id);
+      if (exists) {
+        console.log('Customer already exists, skipping add');
+        return prev;
+      }
+      const updated = [...prev, typedCustomer].sort((a, b) => a.name.localeCompare(b.name));
+      console.log('Updated customers after add:', updated);
+      return updated;
+    });
   };
 
   const updateCustomer = (updatedCustomer: any) => {
+    console.log('Updating customer in state:', updatedCustomer);
     // Type-cast the customer data to ensure proper typing
     const typedCustomer: Customer = {
       id: updatedCustomer.id,
@@ -37,13 +49,23 @@ export const useCustomerState = () => {
       created_at: updatedCustomer.created_at,
       updated_at: updatedCustomer.updated_at
     };
-    setCustomers(prev => prev.map(customer => 
-      customer.id === typedCustomer.id ? typedCustomer : customer
-    ).sort((a, b) => a.name.localeCompare(b.name)));
+    
+    setCustomers(prev => {
+      const updated = prev.map(customer => 
+        customer.id === typedCustomer.id ? typedCustomer : customer
+      ).sort((a, b) => a.name.localeCompare(b.name));
+      console.log('Updated customers after update:', updated);
+      return updated;
+    });
   };
 
   const removeCustomer = (customerId: string) => {
-    setCustomers(prev => prev.filter(customer => customer.id !== customerId));
+    console.log('Removing customer from state:', customerId);
+    setCustomers(prev => {
+      const updated = prev.filter(customer => customer.id !== customerId);
+      console.log('Updated customers after remove:', updated);
+      return updated;
+    });
   };
 
   return {

@@ -31,10 +31,13 @@ export const useCustomerData = (businessType?: BusinessType) => {
   useEffect(() => {
     if (!currentUserId) return;
 
-    console.log('Setting up customer real-time subscription for:', businessType, 'user:', currentUserId);
+    console.log('Setting up customer real-time subscription for business type:', businessType, 'user:', currentUserId);
 
+    // Create a unique channel name that includes timestamp to avoid conflicts
+    const channelName = `customers-realtime-${businessType || 'all'}-${currentUserId}-${Date.now()}`;
+    
     const channel = supabase
-      .channel(`customers-realtime-${businessType || 'all'}-${currentUserId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
