@@ -34,37 +34,56 @@ export const useOptimizedQuery = (config: QueryConfig) => {
       const from = pageParam * pageSize;
       const to = from + pageSize - 1;
 
-      // Use type assertion to avoid deep type instantiation
-      let query: any = supabase
-        .from(config.table)
-        .select(config.select || '*', { count: 'exact' })
-        .eq('user_id', user.id);
+      // Build query using supabase-js client directly to avoid type issues
+      const { data, error, count } = await supabase.rpc('execute_optimized_query', {
+        table_name: config.table,
+        select_fields: config.select || '*',
+        user_id_param: user.id,
+        filters_param: config.filters || {},
+        order_column: config.orderBy?.column || 'created_at',
+        order_ascending: config.orderBy?.ascending ?? false,
+        limit_param: pageSize,
+        offset_param: from
+      }).then(async (result) => {
+        // Fallback to direct query if RPC doesn't exist
+        if (result.error?.code === '42883') { // function does not exist
+          let queryBuilder = supabase
+            .from(config.table)
+            .select(config.select || '*', { count: 'exact' });
 
-      // Apply filters
-      if (config.filters) {
-        Object.entries(config.filters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            query = query.eq(key, value);
+          // Add user filter
+          queryBuilder = queryBuilder.eq('user_id', user.id);
+
+          // Add other filters
+          if (config.filters) {
+            Object.entries(config.filters).forEach(([key, value]) => {
+              if (value !== undefined && value !== null) {
+                queryBuilder = queryBuilder.eq(key, value);
+              }
+            });
           }
-        });
-      }
 
-      // Apply ordering
-      if (config.orderBy) {
-        query = query.order(config.orderBy.column, { 
-          ascending: config.orderBy.ascending ?? true 
-        });
-      }
+          // Add ordering
+          if (config.orderBy) {
+            queryBuilder = queryBuilder.order(config.orderBy.column, { 
+              ascending: config.orderBy.ascending ?? true 
+            });
+          }
 
-      // Apply pagination and execute
-      const result = await query.range(from, to);
+          // Add pagination
+          queryBuilder = queryBuilder.range(from, to);
 
-      if (result.error) throw result.error;
+          return await queryBuilder;
+        }
+        return result;
+      });
 
-      const hasMore = result.count ? (from + pageSize) < result.count : false;
+      if (error) throw error;
+
+      const hasMore = count ? (from + pageSize) < count : false;
 
       return { 
-        data: result.data || [], 
+        data: data || [], 
         hasMore 
       };
     } catch (error) {
