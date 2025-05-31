@@ -11,7 +11,7 @@ export const useOptimizedServices = (businessType: BusinessType) => {
   
   const queryConfig = {
     queryKey: ['services', businessType],
-    table: 'services',
+    table: 'services' as const,
     select: 'id, name, description, price, unit, estimated_duration, is_active, business_type, user_id, created_at, updated_at',
     filters: {
       business_type: businessType,

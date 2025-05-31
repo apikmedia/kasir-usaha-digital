@@ -11,7 +11,7 @@ export const useOptimizedCustomers = (businessType?: BusinessType) => {
   
   const queryConfig = {
     queryKey: businessType ? ['customers', businessType] : ['customers', 'all'],
-    table: 'customers',
+    table: 'customers' as const,
     select: 'id, name, phone, email, address, notes, business_type, user_id, created_at, updated_at',
     filters: businessType ? { business_type: businessType } : {},
     orderBy: { column: 'name', ascending: true },

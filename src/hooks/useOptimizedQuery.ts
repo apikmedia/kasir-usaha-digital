@@ -20,7 +20,7 @@ export const useOptimizedQuery = <T = any>(config: QueryConfig) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const fetchData = async ({ pageParam = 0 }): Promise<{ data: T[]; hasMore: boolean }> => {
+  const fetchData = async ({ pageParam = 0 }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
