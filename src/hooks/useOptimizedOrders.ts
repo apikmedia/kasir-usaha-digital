@@ -66,7 +66,7 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
     finished_at: item.finished_at
   }));
 
-  // Fixed real-time subscription with proper filter format
+  // Fixed real-time subscription with proper filter format and type safety
   useEffect(() => {
     let channel: any = null;
     
@@ -86,8 +86,16 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
         }, (payload) => {
           console.log('Order real-time update:', payload.eventType, payload);
           
+          // Type-safe check for business_type with proper handling of payload structure
+          const newBusinessType = payload.new && typeof payload.new === 'object' && 'business_type' in payload.new 
+            ? payload.new.business_type 
+            : null;
+          const oldBusinessType = payload.old && typeof payload.old === 'object' && 'business_type' in payload.old 
+            ? payload.old.business_type 
+            : null;
+          
           // Only invalidate if it's for this business type
-          if (payload.new?.business_type === businessType || payload.old?.business_type === businessType) {
+          if (newBusinessType === businessType || oldBusinessType === businessType) {
             setTimeout(() => {
               queryClient.invalidateQueries({ 
                 queryKey: ['orders', businessType] 

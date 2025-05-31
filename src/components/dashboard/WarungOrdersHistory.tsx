@@ -29,7 +29,7 @@ const WarungOrdersHistory = () => {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  // Fixed real-time updates with proper filter
+  // Fixed real-time updates with proper filter and type safety
   useEffect(() => {
     let channel: any = null;
     
@@ -49,8 +49,16 @@ const WarungOrdersHistory = () => {
         }, (payload) => {
           console.log('Warung order real-time update received:', payload.eventType, payload);
           
+          // Type-safe check for business_type with proper handling of payload structure
+          const newBusinessType = payload.new && typeof payload.new === 'object' && 'business_type' in payload.new 
+            ? payload.new.business_type 
+            : null;
+          const oldBusinessType = payload.old && typeof payload.old === 'object' && 'business_type' in payload.old 
+            ? payload.old.business_type 
+            : null;
+          
           // Only refresh if it's a warung order
-          if (payload.new?.business_type === 'warung' || payload.old?.business_type === 'warung') {
+          if (newBusinessType === 'warung' || oldBusinessType === 'warung') {
             setRefreshTrigger(prev => prev + 1);
             
             // Also trigger manual refetch for immediate update
