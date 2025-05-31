@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { useOrderOperations } from '@/hooks/useOrderOperations';
 import CuciMotorAddOrderDialog from '@/components/CuciMotorAddOrderDialog';
 import OptimizedLoader from '@/components/ui/OptimizedLoader';
 import { useState } from 'react';
+import type { OrderStatus } from '@/types/order';
 
 const CuciMotorOrdersList = () => {
   const { orders, loading: ordersLoading } = useOptimizedOrders('cuci_motor');
@@ -45,7 +45,7 @@ const CuciMotorOrdersList = () => {
     }
   };
 
-  const handleUpdateStatus = async (orderId: string, status: string) => {
+  const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     setUpdatingOrders(prev => new Set(prev).add(orderId));
     try {
       await updateOrderStatus(orderId, status);
