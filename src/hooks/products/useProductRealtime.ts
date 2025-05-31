@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseProductRealtimeProps {
-  invalidateAndRefresh: () => void;
+  invalidateAndRefresh: () => Promise<any>;
 }
 
 export const useProductRealtime = ({ invalidateAndRefresh }: UseProductRealtimeProps) => {
@@ -24,12 +24,14 @@ export const useProductRealtime = ({ invalidateAndRefresh }: UseProductRealtimeP
           table: 'products',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
-          console.log('Product real-time update:', payload.eventType, payload);
+          console.log('Product real-time update received:', payload.eventType, payload);
           
-          // Immediate refresh for all product changes with slight delay for database consistency
-          setTimeout(() => {
-            invalidateAndRefresh();
-          }, 100);
+          // Only refresh if it's from another session (not our own changes)
+          // Small delay to ensure database consistency
+          setTimeout(async () => {
+            console.log('Triggering real-time refresh');
+            await invalidateAndRefresh();
+          }, 200);
         })
         .subscribe((status) => {
           console.log('Products realtime subscription status:', status);

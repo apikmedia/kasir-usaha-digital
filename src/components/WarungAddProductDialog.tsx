@@ -11,6 +11,7 @@ import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
 const WarungAddProductDialog = () => {
   const { createProduct } = useOptimizedProducts();
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -23,27 +24,41 @@ const WarungAddProductDialog = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const productData = {
-      name: formData.name,
-      description: formData.description || undefined,
-      price: parseFloat(formData.price),
-      stock: parseInt(formData.stock) || 0,
-      category: formData.category || undefined,
-      sku: formData.sku || undefined,
-      is_active: true
-    };
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log('Submitting product form:', formData);
+      
+      const productData = {
+        name: formData.name,
+        description: formData.description || undefined,
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock) || 0,
+        category: formData.category || undefined,
+        sku: formData.sku || undefined,
+        is_active: true
+      };
 
-    const success = await createProduct(productData);
-    if (success) {
-      setOpen(false);
-      setFormData({
-        name: '',
-        description: '',
-        price: '',
-        stock: '',
-        category: '',
-        sku: ''
-      });
+      const success = await createProduct(productData);
+      console.log('Create product result:', success);
+      
+      if (success) {
+        setOpen(false);
+        setFormData({
+          name: '',
+          description: '',
+          price: '',
+          stock: '',
+          category: '',
+          sku: ''
+        });
+        console.log('Product creation successful, dialog closed');
+      }
+    } catch (error) {
+      console.error('Error in form submission:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -70,6 +85,7 @@ const WarungAddProductDialog = () => {
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               required
+              disabled={isSubmitting}
             />
           </div>
           
@@ -80,6 +96,7 @@ const WarungAddProductDialog = () => {
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
               placeholder="Makanan, Minuman, dll"
+              disabled={isSubmitting}
             />
           </div>
 
@@ -90,6 +107,7 @@ const WarungAddProductDialog = () => {
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Deskripsi produk"
+              disabled={isSubmitting}
             />
           </div>
 
@@ -104,6 +122,7 @@ const WarungAddProductDialog = () => {
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
+                disabled={isSubmitting}
               />
             </div>
             
@@ -115,6 +134,7 @@ const WarungAddProductDialog = () => {
                 min="0"
                 value={formData.stock}
                 onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -126,15 +146,16 @@ const WarungAddProductDialog = () => {
               value={formData.sku}
               onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
               placeholder="Kode produk"
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
               Batal
             </Button>
-            <Button type="submit">
-              Tambah Produk
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Menambahkan...' : 'Tambah Produk'}
             </Button>
           </div>
         </form>

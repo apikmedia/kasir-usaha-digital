@@ -11,7 +11,10 @@ export const useOptimizedProducts = () => {
     products,
     loading,
     fetchProducts,
-    invalidateAndRefresh
+    invalidateAndRefresh,
+    addProductToState,
+    updateProductInState,
+    removeProductFromState
   } = useProductData();
 
   const {
@@ -19,13 +22,24 @@ export const useOptimizedProducts = () => {
     updateProduct,
     deleteProduct,
     updateStock
-  } = useProductOperations({ invalidateAndRefresh });
+  } = useProductOperations({ 
+    invalidateAndRefresh, 
+    addProductToState, 
+    updateProductInState, 
+    removeProductFromState 
+  });
 
   useProductRealtime({ invalidateAndRefresh });
 
   useEffect(() => {
+    console.log('useOptimizedProducts: Initial fetch');
     fetchProducts();
   }, []);
+
+  // Debug log when products change
+  useEffect(() => {
+    console.log('Products state changed:', products.length, products);
+  }, [products]);
 
   return {
     products,

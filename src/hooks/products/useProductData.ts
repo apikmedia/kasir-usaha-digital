@@ -24,12 +24,13 @@ export const useProductData = () => {
 
       console.log('Fetching products for user:', user.id);
 
+      // Always fetch fresh data from database
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .order('name');
+        .order('created_at', { ascending: false }); // Show newest first
 
       if (error) {
         console.error('Error fetching products:', error);
@@ -43,8 +44,12 @@ export const useProductData = () => {
       }
 
       const productsData = data || [];
-      console.log('Fetched products:', productsData.length);
+      console.log('Fetched products:', productsData.length, productsData);
+      
+      // Update state immediately
       setProducts(productsData);
+      
+      // Update cache
       cache.set(productsData);
       
       if (showLoading) setLoading(false);
@@ -56,11 +61,44 @@ export const useProductData = () => {
     }
   };
 
-  const invalidateAndRefresh = () => {
+  const invalidateAndRefresh = async () => {
     console.log('Invalidating products cache and refreshing');
     cache.invalidate();
-    // Force immediate refresh without showing loading state
-    fetchProducts(false);
+    
+    // Force immediate refresh
+    const freshData = await fetchProducts(false);
+    console.log('Fresh data after invalidate:', freshData);
+    return freshData;
+  };
+
+  const addProductToState = (newProduct: Product) => {
+    console.log('Adding product to state:', newProduct);
+    setProducts(prev => {
+      const updated = [newProduct, ...prev];
+      console.log('Updated products state:', updated);
+      cache.set(updated);
+      return updated;
+    });
+  };
+
+  const updateProductInState = (updatedProduct: Product) => {
+    console.log('Updating product in state:', updatedProduct);
+    setProducts(prev => {
+      const updated = prev.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+      console.log('Updated products state after edit:', updated);
+      cache.set(updated);
+      return updated;
+    });
+  };
+
+  const removeProductFromState = (productId: string) => {
+    console.log('Removing product from state:', productId);
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== productId);
+      console.log('Updated products state after delete:', updated);
+      cache.set(updated);
+      return updated;
+    });
   };
 
   return {
@@ -68,6 +106,9 @@ export const useProductData = () => {
     loading,
     fetchProducts,
     invalidateAndRefresh,
-    setProducts
+    setProducts,
+    addProductToState,
+    updateProductInState,
+    removeProductFromState
   };
 };

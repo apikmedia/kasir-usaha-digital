@@ -4,10 +4,18 @@ import { useToast } from '@/hooks/use-toast';
 import type { Product, ProductFormData } from './types';
 
 interface UseProductOperationsProps {
-  invalidateAndRefresh: () => void;
+  invalidateAndRefresh: () => Promise<Product[]>;
+  addProductToState: (product: Product) => void;
+  updateProductInState: (product: Product) => void;
+  removeProductFromState: (productId: string) => void;
 }
 
-export const useProductOperations = ({ invalidateAndRefresh }: UseProductOperationsProps) => {
+export const useProductOperations = ({ 
+  invalidateAndRefresh, 
+  addProductToState, 
+  updateProductInState, 
+  removeProductFromState 
+}: UseProductOperationsProps) => {
   const { toast } = useToast();
 
   const createProduct = async (productData: ProductFormData) => {
@@ -30,15 +38,18 @@ export const useProductOperations = ({ invalidateAndRefresh }: UseProductOperati
 
       console.log('Product created successfully:', data);
 
+      // Immediately add to state for instant UI update
+      addProductToState(data);
+
       toast({
         title: "Berhasil",
         description: "Produk berhasil ditambahkan",
       });
 
-      // Immediate refresh to update the UI
+      // Also refresh from database to ensure consistency
       setTimeout(() => {
         invalidateAndRefresh();
-      }, 50);
+      }, 100);
 
       return data;
     } catch (error) {
@@ -56,24 +67,29 @@ export const useProductOperations = ({ invalidateAndRefresh }: UseProductOperati
     try {
       console.log('Updating product:', id, productData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .update(productData)
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      console.log('Product updated successfully');
+      console.log('Product updated successfully:', data);
+
+      // Immediately update state for instant UI update
+      updateProductInState(data);
 
       toast({
         title: "Berhasil",
         description: "Produk berhasil diperbarui",
       });
 
-      // Immediate refresh to update the UI
+      // Also refresh from database to ensure consistency
       setTimeout(() => {
         invalidateAndRefresh();
-      }, 50);
+      }, 100);
 
       return true;
     } catch (error) {
@@ -100,15 +116,18 @@ export const useProductOperations = ({ invalidateAndRefresh }: UseProductOperati
 
       console.log('Product deleted successfully');
 
+      // Immediately remove from state for instant UI update
+      removeProductFromState(id);
+
       toast({
         title: "Berhasil",
         description: "Produk berhasil dihapus",
       });
 
-      // Immediate refresh to update the UI
+      // Also refresh from database to ensure consistency
       setTimeout(() => {
         invalidateAndRefresh();
-      }, 50);
+      }, 100);
 
       return true;
     } catch (error) {
