@@ -1,5 +1,6 @@
 
 import { useOptimizedQuery } from './useOptimizedQuery';
+import { useOrderOperations } from './useOrderOperations';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Order, BusinessType } from '@/types/order';
 import { useEffect } from 'react';
@@ -11,6 +12,7 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
   limit?: number;
 }) => {
   const queryClient = useQueryClient();
+  const { createOrder: createOrderOp, updateOrderStatus } = useOrderOperations();
   
   // Build filters based on options
   const filters: Record<string, any> = {
@@ -21,9 +23,14 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
     filters.status = options.status;
   }
 
+  // Fix queryKey to be all strings
+  const dateRangeKey = options?.dateRange ? 
+    `${options.dateRange.from.toISOString()}_${options.dateRange.to.toISOString()}` : 
+    'all';
+
   const queryConfig = {
-    queryKey: ['orders', businessType, options?.status, options?.dateRange],
-    table: 'orders',
+    queryKey: ['orders', businessType, options?.status || 'all', dateRangeKey],
+    table: 'orders' as const,
     select: 'id, order_number, business_type, status, total_amount, payment_method, payment_status, notes, customer_id, created_at, updated_at, finished_at',
     filters,
     orderBy: { column: 'created_at', ascending: false },
@@ -79,6 +86,15 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
     };
   }, [businessType, queryClient]);
 
+  const createOrder = async (orderData: Partial<Order>) => {
+    const result = await createOrderOp(businessType, orderData);
+    if (result && result.success) {
+      invalidate();
+      return result.success;
+    }
+    return false;
+  };
+
   return {
     orders,
     loading: isLoading,
@@ -86,6 +102,8 @@ export const useOptimizedOrders = (businessType: BusinessType, options?: {
     refetch,
     invalidate,
     hasMore,
-    prefetchNext
+    prefetchNext,
+    createOrder,
+    updateOrderStatus
   };
 };

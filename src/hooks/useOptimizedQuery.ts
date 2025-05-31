@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCallback } from 'react';
 
-interface QueryConfig<T> {
+type TableName = 'orders' | 'customers' | 'services' | 'products' | 'profiles' | 'transactions';
+
+interface QueryConfig {
   queryKey: string[];
-  table: string;
+  table: TableName;
   select?: string;
   filters?: Record<string, any>;
   orderBy?: { column: string; ascending?: boolean };
@@ -14,7 +16,7 @@ interface QueryConfig<T> {
   businessType?: string;
 }
 
-export const useOptimizedQuery = <T,>(config: QueryConfig<T>) => {
+export const useOptimizedQuery = <T = any>(config: QueryConfig) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,7 +58,7 @@ export const useOptimizedQuery = <T,>(config: QueryConfig<T>) => {
       const hasMore = count ? (from + pageSize) < count : false;
 
       return { 
-        data: data || [], 
+        data: (data || []) as T[], 
         hasMore 
       };
     } catch (error) {
