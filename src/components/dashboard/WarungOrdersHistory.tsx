@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +7,12 @@ import { Loader2 } from "lucide-react";
 import { useOrdersPagination } from '@/hooks/useOrdersPagination';
 import PaginationControls from '@/components/ui/PaginationControls';
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from '@/integrations/supabase/client';
 
 const WarungOrdersHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const { 
     orders, 
@@ -20,10 +22,45 @@ const WarungOrdersHistory = () => {
   } = useOrdersPagination({ 
     businessType: 'warung', 
     page: currentPage, 
-    pageSize 
+    pageSize,
+    refreshTrigger
   });
 
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Real-time updates for warung orders
+  useEffect(() => {
+    let channel: any = null;
+    
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel(`warung_orders_history_${user.id}_${Date.now()}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id} AND business_type=eq.warung`
+        }, (payload) => {
+          console.log('Warung order real-time update:', payload.eventType);
+          // Trigger refresh by updating the trigger state
+          setRefreshTrigger(prev => prev + 1);
+        })
+        .subscribe((status) => {
+          console.log('Warung orders history realtime subscription status:', status);
+        });
+    };
+
+    setupRealtime();
+    
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

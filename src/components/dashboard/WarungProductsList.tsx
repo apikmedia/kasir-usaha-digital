@@ -52,6 +52,7 @@ const WarungProductsList = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>No.</TableHead>
                 <TableHead>Nama Produk</TableHead>
                 <TableHead>Kategori</TableHead>
                 <TableHead>Harga</TableHead>
@@ -64,13 +65,14 @@ const WarungProductsList = () => {
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     Belum ada produk tersedia
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((product) => (
+                products.map((product, index) => (
                   <TableRow key={product.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">{product.name}</div>

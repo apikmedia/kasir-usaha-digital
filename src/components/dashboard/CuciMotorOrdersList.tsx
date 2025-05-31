@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import { useState } from 'react';
 import type { OrderStatus } from '@/types/order';
 
 const CuciMotorOrdersList = () => {
-  const { orders, loading: ordersLoading } = useOptimizedOrders('cuci_motor');
+  const { orders, loading: ordersLoading, invalidate } = useOptimizedOrders('cuci_motor');
   const { updateOrderStatus } = useOrderOperations();
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set());
 
@@ -48,7 +49,12 @@ const CuciMotorOrdersList = () => {
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     setUpdatingOrders(prev => new Set(prev).add(orderId));
     try {
-      await updateOrderStatus(orderId, status);
+      const success = await updateOrderStatus(orderId, status);
+      if (success) {
+        console.log('Status updated successfully, triggering refresh');
+        // Force immediate refresh to show the updated status
+        invalidate();
+      }
     } finally {
       setUpdatingOrders(prev => {
         const newSet = new Set(prev);
@@ -79,6 +85,7 @@ const CuciMotorOrdersList = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>No.</TableHead>
                 <TableHead>No. Order</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Motor</TableHead>
@@ -91,13 +98,14 @@ const CuciMotorOrdersList = () => {
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     Tidak ada pesanan ditemukan
                   </TableCell>
                 </TableRow>
               ) : (
-                orders.map((order) => (
+                orders.map((order, index) => (
                   <TableRow key={order.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell className="font-medium">{order.order_number}</TableCell>
                     <TableCell>{order.customer_name || '-'}</TableCell>
                     <TableCell>{order.notes || '-'}</TableCell>

@@ -77,6 +77,7 @@ export const useOptimizedProducts = () => {
   };
 
   const invalidateAndRefresh = () => {
+    console.log('Invalidating products cache and refreshing');
     cache.invalidate(cacheKey);
     fetchProducts(false);
   };
@@ -177,7 +178,7 @@ export const useOptimizedProducts = () => {
     fetchProducts();
   }, []);
 
-  // Real-time updates
+  // Enhanced real-time updates
   useEffect(() => {
     let channel: any = null;
     
@@ -186,17 +187,20 @@ export const useOptimizedProducts = () => {
       if (!user) return;
 
       channel = supabase
-        .channel(`products_${user.id}`)
+        .channel(`products_realtime_${user.id}_${Date.now()}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'products',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
-          console.log('Product real-time update:', payload.eventType);
+          console.log('Product real-time update:', payload.eventType, payload);
+          // Immediate refresh for all product changes
           invalidateAndRefresh();
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Products realtime subscription status:', status);
+        });
     };
 
     setupRealtime();
