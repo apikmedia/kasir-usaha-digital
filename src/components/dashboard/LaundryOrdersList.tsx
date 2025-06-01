@@ -43,7 +43,7 @@ const LaundryOrdersList = () => {
     // Find the order and update payment status
     const order = orders.find(o => o.order_number === orderNumber);
     if (order) {
-      await updateStatus(order.id, 'selesai');
+      await updateStatus(order.id, 'selesai' as OrderStatus);
     }
     
     // Generate receipt
