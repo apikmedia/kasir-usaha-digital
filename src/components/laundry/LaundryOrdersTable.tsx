@@ -1,8 +1,7 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import LaundryOrderRow from './LaundryOrderRow';
-import type { Order } from '@/types/order';
+import type { Order, OrderStatus } from '@/types/order';
 
 interface LaundryOrdersTableProps {
   orders: Order[];
@@ -11,7 +10,7 @@ interface LaundryOrdersTableProps {
   currentPage: number;
   pageSize: number;
   currentReceipt: any;
-  onUpdateStatus: (orderId: string, status: string) => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onPayment: (totalAmount: number, orderNumber: string) => void;
 }
 

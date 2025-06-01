@@ -1,14 +1,13 @@
-
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Loader2, CreditCard } from "lucide-react";
 import ReceiptGenerator from '@/components/receipt/ReceiptGenerator';
-import type { Order } from '@/types/order';
+import type { Order, OrderStatus } from '@/types/order';
 
 interface LaundryOrderActionsProps {
   order: Order;
   isUpdating: boolean;
   currentReceipt: any;
-  onUpdateStatus: (orderId: string, status: string) => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onPayment: (totalAmount: number, orderNumber: string) => void;
 }
 

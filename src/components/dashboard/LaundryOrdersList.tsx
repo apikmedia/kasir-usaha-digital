@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrdersPagination } from '@/hooks/useOrdersPagination';
@@ -9,6 +8,7 @@ import { usePayment } from '@/hooks/usePayment';
 import { useReceipt } from '@/hooks/useReceipt';
 import LaundryOrdersHeader from '@/components/laundry/LaundryOrdersHeader';
 import LaundryOrdersTable from '@/components/laundry/LaundryOrdersTable';
+import type { OrderStatus } from '@/types/order';
 
 const LaundryOrdersList = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,7 +61,7 @@ const LaundryOrdersList = () => {
     closePaymentDialog();
   };
 
-  const handleUpdateStatus = (orderId: string, status: string) => {
+  const handleUpdateStatus = (orderId: string, status: OrderStatus) => {
     updateOrderStatus({ orderId, status });
   };
 

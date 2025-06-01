@@ -1,8 +1,7 @@
-
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import LaundryOrderActions from './LaundryOrderActions';
-import type { Order } from '@/types/order';
+import type { Order, OrderStatus } from '@/types/order';
 
 interface LaundryOrderRowProps {
   order: Order;
@@ -10,7 +9,7 @@ interface LaundryOrderRowProps {
   serialNumber: number;
   isUpdating: boolean;
   currentReceipt: any;
-  onUpdateStatus: (orderId: string, status: string) => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onPayment: (totalAmount: number, orderNumber: string) => void;
 }
 
