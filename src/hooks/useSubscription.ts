@@ -10,6 +10,34 @@ interface SubscriptionData {
   days_remaining: number;
 }
 
+interface TrialResponse {
+  success: boolean;
+  message: string;
+  trial_end_date?: string;
+}
+
+interface BasicResponse {
+  success: boolean;
+  message: string;
+}
+
+// Type guard functions
+const isSubscriptionData = (data: any): data is SubscriptionData => {
+  return data && 
+    typeof data.has_premium_access === 'boolean' &&
+    typeof data.plan === 'string' &&
+    typeof data.is_trial === 'boolean' &&
+    typeof data.days_remaining === 'number';
+};
+
+const isTrialResponse = (data: any): data is TrialResponse => {
+  return data && typeof data.success === 'boolean' && typeof data.message === 'string';
+};
+
+const isBasicResponse = (data: any): data is BasicResponse => {
+  return data && typeof data.success === 'boolean' && typeof data.message === 'string';
+};
+
 export const useSubscription = () => {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData>({
     has_premium_access: false,
@@ -29,7 +57,11 @@ export const useSubscription = () => {
         return;
       }
 
-      setSubscriptionData(data);
+      if (isSubscriptionData(data)) {
+        setSubscriptionData(data);
+      } else {
+        console.error('Invalid subscription data format:', data);
+      }
     } catch (error) {
       console.error('Error checking premium access:', error);
     } finally {
@@ -51,17 +83,27 @@ export const useSubscription = () => {
         return false;
       }
 
-      if (data.success) {
-        toast({
-          title: "Berhasil!",
-          description: data.message,
-        });
-        await checkPremiumAccess();
-        return true;
+      if (isTrialResponse(data)) {
+        if (data.success) {
+          toast({
+            title: "Berhasil!",
+            description: data.message,
+          });
+          await checkPremiumAccess();
+          return true;
+        } else {
+          toast({
+            title: "Info",
+            description: data.message,
+            variant: "destructive",
+          });
+          return false;
+        }
       } else {
+        console.error('Invalid trial response format:', data);
         toast({
-          title: "Info",
-          description: data.message,
+          title: "Error",
+          description: "Respons tidak valid dari server",
           variant: "destructive",
         });
         return false;
@@ -92,14 +134,24 @@ export const useSubscription = () => {
         return false;
       }
 
-      if (data.success) {
+      if (isBasicResponse(data)) {
+        if (data.success) {
+          toast({
+            title: "Berhasil!",
+            description: data.message,
+          });
+          await checkPremiumAccess();
+          return true;
+        }
+      } else {
+        console.error('Invalid basic response format:', data);
         toast({
-          title: "Berhasil!",
-          description: data.message,
+          title: "Error",
+          description: "Respons tidak valid dari server",
+          variant: "destructive",
         });
-        await checkPremiumAccess();
-        return true;
       }
+      return false;
     } catch (error) {
       toast({
         title: "Error",
