@@ -1,142 +1,45 @@
 
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
 import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
-import { useQueryClient } from '@tanstack/react-query';
-import { usePayment } from '@/hooks/usePayment';
 import { useReceipt } from '@/hooks/useReceipt';
 import WarungCart from './WarungCart';
 import WarungProductGrid from './WarungProductGrid';
 import PaymentDialog from '@/components/payment/PaymentDialog';
-import ReceiptGenerator from '@/components/receipt/ReceiptGenerator';
-
-interface CartItem {
-  product: any;
-  quantity: number;
-}
+import WarungReceiptDisplay from './WarungReceiptDisplay';
+import { useWarungCartHandlers } from './WarungCartHandlers';
+import { useWarungCheckoutHandlers } from './WarungCheckoutHandlers';
 
 const WarungCashier = () => {
-  const queryClient = useQueryClient();
-  const { createOrder } = useOptimizedOrders('warung');
-  const { products, loading: productsLoading, updateStock } = useOptimizedProducts();
-  const { paymentDialog, openPaymentDialog, closePaymentDialog, processPayment } = usePayment();
-  const { currentReceipt, generateReceipt, clearReceipt } = useReceipt();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { products, loading: productsLoading } = useOptimizedProducts();
+  const { currentReceipt } = useReceipt();
+  
+  const {
+    cart,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    getTotalAmount,
+    clearCart
+  } = useWarungCartHandlers();
 
-  const addToCart = (product: any) => {
-    if (product.stock <= 0) return;
-    
-    const existingItem = cart.find(item => item.product.id === product.id);
-    if (existingItem) {
-      if (existingItem.quantity < product.stock) {
-        setCart(cart.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        ));
-      }
-    } else {
-      setCart([...cart, { product, quantity: 1 }]);
-    }
+  const {
+    paymentDialog,
+    handleCheckout,
+    handlePaymentComplete,
+    closePaymentDialog,
+    formatCurrency
+  } = useWarungCheckoutHandlers();
+
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
+    updateQuantity(productId, newQuantity, products);
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.product.id !== productId));
+  const handleCheckoutClick = () => {
+    handleCheckout(cart, getTotalAmount);
   };
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeFromCart(productId);
-    } else {
-      const product = products.find(p => p.id === productId);
-      if (product && newQuantity <= product.stock) {
-        setCart(cart.map(item =>
-          item.product.id === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        ));
-      }
-    }
-  };
-
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  };
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
-
-    const totalAmount = getTotalAmount();
-    const orderNotes = cart.map(item => 
-      `${item.product.name} x${item.quantity} = ${formatCurrency(item.product.price * item.quantity)}`
-    ).join(', ');
-
-    const success = await createOrder({
-      total_amount: totalAmount,
-      notes: orderNotes,
-      status: 'selesai',
-      payment_status: false
-    });
-
-    if (success) {
-      // Generate temporary order number for payment
-      const tempOrderNumber = `WRG${Date.now().toString().slice(-6)}`;
-      openPaymentDialog(totalAmount, tempOrderNumber);
-    }
-  };
-
-  const handlePaymentComplete = async (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
-    const paymentData = processPayment(paidAmount, change);
-    
-    // Update stock for each product
-    for (const item of cart) {
-      await updateStock(item.product.id, item.product.stock - item.quantity);
-    }
-    
-    // Generate receipt
-    const receiptItems = cart.map(item => ({
-      name: item.product.name,
-      quantity: item.quantity,
-      price: item.product.price,
-      subtotal: item.product.price * item.quantity
-    }));
-
-    generateReceipt(
-      paymentData.orderNumber,
-      'warung',
-      receiptItems,
-      paymentData.totalAmount,
-      paymentData.paidAmount,
-      paymentData.change,
-      undefined,
-      'Pembelian warung'
-    );
-    
-    // Clear cart
-    setCart([]);
-    
-    // Force immediate refresh of all warung-related queries
-    console.log('Force refreshing warung orders after checkout...');
-    queryClient.invalidateQueries({ queryKey: ['orders', 'warung'] });
-    
-    queryClient.invalidateQueries({ 
-      queryKey: ['orders'],
-      predicate: (query) => {
-        const queryKey = query.queryKey as any[];
-        return queryKey.includes('warung');
-      }
-    });
-
-    closePaymentDialog();
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
+  const handlePaymentCompleteClick = (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
+    handlePaymentComplete(paidAmount, change, paymentMethod, orderNumber, cart, clearCart);
   };
 
   return (
@@ -163,33 +66,15 @@ const WarungCashier = () => {
       <div>
         <WarungCart
           cart={cart}
-          onUpdateQuantity={updateQuantity}
+          onUpdateQuantity={handleUpdateQuantity}
           onRemoveFromCart={removeFromCart}
-          onCheckout={handleCheckout}
+          onCheckout={handleCheckoutClick}
           getTotalAmount={getTotalAmount}
           formatCurrency={formatCurrency}
         />
 
         {/* Receipt Display */}
-        {currentReceipt && (
-          <div className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Nota Terakhir</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">{currentReceipt.orderNumber}</span>
-                  <div className="flex space-x-2">
-                    <ReceiptGenerator 
-                      receiptData={currentReceipt}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        <WarungReceiptDisplay currentReceipt={currentReceipt} />
       </div>
 
       {/* Payment Dialog */}
@@ -198,7 +83,7 @@ const WarungCashier = () => {
         onClose={closePaymentDialog}
         totalAmount={paymentDialog.totalAmount}
         orderNumber={paymentDialog.orderNumber}
-        onPaymentComplete={handlePaymentComplete}
+        onPaymentComplete={handlePaymentCompleteClick}
       />
     </div>
   );
