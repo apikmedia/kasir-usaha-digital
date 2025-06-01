@@ -1,10 +1,11 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Settings } from "lucide-react";
 import WarungCashier from './WarungCashier';
 import WarungProductsList from './WarungProductsList';
 import WarungOrdersHistory from './WarungOrdersHistory';
 import WarungReports from './WarungReports';
+import SettingsPage from '../settings/SettingsPage';
 
 const WarungDashboard = () => {
   return (
@@ -15,11 +16,15 @@ const WarungDashboard = () => {
       </div>
 
       <Tabs defaultValue="cashier" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="cashier">Kasir</TabsTrigger>
           <TabsTrigger value="products">Kelola Produk</TabsTrigger>
           <TabsTrigger value="orders">Riwayat</TabsTrigger>
           <TabsTrigger value="reports">Laporan</TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center space-x-1">
+            <Settings className="h-4 w-4" />
+            <span>Pengaturan</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="cashier" className="space-y-4">
@@ -36,6 +41,10 @@ const WarungDashboard = () => {
 
         <TabsContent value="reports">
           <WarungReports />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <SettingsPage />
         </TabsContent>
       </Tabs>
     </div>

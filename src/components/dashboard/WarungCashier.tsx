@@ -4,8 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
 import { useOptimizedProducts } from '@/hooks/useOptimizedProducts';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePayment } from '@/hooks/usePayment';
+import { useReceipt } from '@/hooks/useReceipt';
 import WarungCart from './WarungCart';
 import WarungProductGrid from './WarungProductGrid';
+import PaymentDialog from '@/components/payment/PaymentDialog';
+import ReceiptGenerator from '@/components/receipt/ReceiptGenerator';
 
 interface CartItem {
   product: any;
@@ -16,14 +20,15 @@ const WarungCashier = () => {
   const queryClient = useQueryClient();
   const { createOrder } = useOptimizedOrders('warung');
   const { products, loading: productsLoading, updateStock } = useOptimizedProducts();
+  const { paymentDialog, openPaymentDialog, closePaymentDialog, processPayment } = usePayment();
+  const { currentReceipt, generateReceipt, clearReceipt } = useReceipt();
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = (product: any) => {
-    if (product.stock <= 0) return; // Don't add if no stock
+    if (product.stock <= 0) return;
     
     const existingItem = cart.find(item => item.product.id === product.id);
     if (existingItem) {
-      // Check if we can add more (don't exceed stock)
       if (existingItem.quantity < product.stock) {
         setCart(cart.map(item =>
           item.product.id === product.id
@@ -75,27 +80,53 @@ const WarungCashier = () => {
     });
 
     if (success) {
-      // Update stock for each product
-      for (const item of cart) {
-        await updateStock(item.product.id, item.product.stock - item.quantity);
-      }
-      
-      // Clear cart
-      setCart([]);
-      
-      // Force immediate refresh of all warung-related queries
-      console.log('Force refreshing warung orders after checkout...');
-      queryClient.invalidateQueries({ queryKey: ['orders', 'warung'] });
-      
-      // Also trigger refresh for paginated orders
-      queryClient.invalidateQueries({ 
-        queryKey: ['orders'],
-        predicate: (query) => {
-          const queryKey = query.queryKey as any[];
-          return queryKey.includes('warung');
-        }
-      });
+      // Generate temporary order number for payment
+      const tempOrderNumber = `WRG${Date.now().toString().slice(-6)}`;
+      openPaymentDialog(totalAmount, tempOrderNumber);
     }
+  };
+
+  const handlePaymentConfirmed = async (paidAmount: number, change: number) => {
+    const paymentData = processPayment(paidAmount, change);
+    
+    // Update stock for each product
+    for (const item of cart) {
+      await updateStock(item.product.id, item.product.stock - item.quantity);
+    }
+    
+    // Generate receipt
+    const receiptItems = cart.map(item => ({
+      name: item.product.name,
+      quantity: item.quantity,
+      price: item.product.price,
+      subtotal: item.product.price * item.quantity
+    }));
+
+    generateReceipt(
+      paymentData.orderNumber,
+      'warung',
+      receiptItems,
+      paymentData.totalAmount,
+      paymentData.paidAmount,
+      paymentData.change,
+      undefined,
+      'Pembelian warung'
+    );
+    
+    // Clear cart
+    setCart([]);
+    
+    // Force immediate refresh of all warung-related queries
+    console.log('Force refreshing warung orders after checkout...');
+    queryClient.invalidateQueries({ queryKey: ['orders', 'warung'] });
+    
+    queryClient.invalidateQueries({ 
+      queryKey: ['orders'],
+      predicate: (query) => {
+        const queryKey = query.queryKey as any[];
+        return queryKey.includes('warung');
+      }
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -136,7 +167,37 @@ const WarungCashier = () => {
           getTotalAmount={getTotalAmount}
           formatCurrency={formatCurrency}
         />
+
+        {/* Receipt Display */}
+        {currentReceipt && (
+          <div className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Nota Terakhir</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">{currentReceipt.orderNumber}</span>
+                  <div className="flex space-x-2">
+                    <ReceiptGenerator 
+                      receiptData={currentReceipt}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        totalAmount={paymentDialog.totalAmount}
+        isOpen={paymentDialog.isOpen}
+        onOpenChange={closePaymentDialog}
+        onPaymentConfirmed={handlePaymentConfirmed}
+        orderNumber={paymentDialog.orderNumber}
+      />
     </div>
   );
 };
