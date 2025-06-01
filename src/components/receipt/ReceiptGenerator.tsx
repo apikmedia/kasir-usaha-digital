@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Printer, Share, MessageCircle } from "lucide-react";
+import { MessageCircle, Receipt } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 
 interface ReceiptItem {
@@ -26,10 +26,9 @@ interface ReceiptData {
 
 interface ReceiptGeneratorProps {
   receiptData: ReceiptData;
-  onPrint?: () => void;
 }
 
-const ReceiptGenerator = ({ receiptData, onPrint }: ReceiptGeneratorProps) => {
+const ReceiptGenerator = ({ receiptData }: ReceiptGeneratorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
@@ -84,43 +83,6 @@ const ReceiptGenerator = ({ receiptData, onPrint }: ReceiptGeneratorProps) => {
     return receipt;
   };
 
-  const handlePrint = () => {
-    const receiptText = generateReceiptText();
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Receipt - ${receiptData.orderNumber}</title>
-            <style>
-              body { 
-                font-family: 'Courier New', monospace; 
-                font-size: 12px; 
-                line-height: 1.4; 
-                margin: 0; 
-                padding: 20px;
-                white-space: pre-wrap;
-              }
-              @media print {
-                body { margin: 0; padding: 10px; }
-              }
-            </style>
-          </head>
-          <body>${receiptText}</body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-    
-    if (onPrint) onPrint();
-    
-    toast({
-      title: "Berhasil",
-      description: "Nota berhasil dicetak",
-    });
-  };
-
   const handleShareWhatsApp = () => {
     const receiptText = generateReceiptText();
     const message = encodeURIComponent(`*NOTA PEMBAYARAN*\n\n${receiptText}`);
@@ -141,7 +103,7 @@ const ReceiptGenerator = ({ receiptData, onPrint }: ReceiptGeneratorProps) => {
         onClick={() => setIsOpen(true)}
         className="flex items-center space-x-2"
       >
-        <Printer className="h-4 w-4" />
+        <Receipt className="h-4 w-4" />
         <span>Nota</span>
       </Button>
 
@@ -150,7 +112,7 @@ const ReceiptGenerator = ({ receiptData, onPrint }: ReceiptGeneratorProps) => {
           <DialogHeader>
             <DialogTitle>Nota Pembayaran</DialogTitle>
             <DialogDescription>
-              Cetak atau bagikan nota untuk pesanan {receiptData.orderNumber}
+              Bagikan nota untuk pesanan {receiptData.orderNumber}
             </DialogDescription>
           </DialogHeader>
           
@@ -159,22 +121,13 @@ const ReceiptGenerator = ({ receiptData, onPrint }: ReceiptGeneratorProps) => {
               {generateReceiptText()}
             </div>
             
-            <div className="flex space-x-2">
-              <Button
-                onClick={handlePrint}
-                className="flex-1 flex items-center space-x-2"
-              >
-                <Printer className="h-4 w-4" />
-                <span>Cetak</span>
-              </Button>
-              
+            <div className="flex justify-center">
               <Button
                 onClick={handleShareWhatsApp}
-                variant="outline"
-                className="flex-1 flex items-center space-x-2"
+                className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white"
               >
                 <MessageCircle className="h-4 w-4" />
-                <span>Share WA</span>
+                <span>Share ke WhatsApp</span>
               </Button>
             </div>
           </div>

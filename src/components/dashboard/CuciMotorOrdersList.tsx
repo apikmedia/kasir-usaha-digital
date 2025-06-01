@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, Clock, Receipt, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, Loader2 } from "lucide-react";
 import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
 import { useOrderOperations } from '@/hooks/useOrderOperations';
 import CuciMotorAddOrderDialog from '@/components/CuciMotorAddOrderDialog';
@@ -148,10 +148,6 @@ const CuciMotorOrdersList = () => {
                             Selesai
                           </Button>
                         )}
-                        <Button variant="outline" size="sm">
-                          <Receipt className="h-4 w-4 mr-1" />
-                          Cetak
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
