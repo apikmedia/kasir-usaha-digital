@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Clock, CheckCircle, Loader2, CreditCard } from "lucide-react";
 import { useOrdersPagination } from '@/hooks/useOrdersPagination';
+import { useOrderOperations } from '@/hooks/useOrderOperations';
 import PaginationControls from '@/components/ui/PaginationControls';
 import { Skeleton } from "@/components/ui/skeleton";
 import PaymentDialog from '@/components/payment/PaymentDialog';
@@ -30,6 +31,7 @@ const LaundryOrdersList = () => {
     pageSize 
   });
 
+  const { updateOrderStatus: updateStatus } = useOrderOperations();
   const { paymentDialog, openPaymentDialog, closePaymentDialog, processPayment } = usePayment();
   const { generateReceipt, currentReceipt } = useReceipt();
 
@@ -48,6 +50,14 @@ const LaundryOrdersList = () => {
     }
   };
 
+  const getPaymentStatusBadge = (paymentStatus: boolean) => {
+    return paymentStatus ? (
+      <Badge className="bg-green-100 text-green-800">Lunas</Badge>
+    ) : (
+      <Badge className="bg-orange-100 text-orange-800">Belum Bayar</Badge>
+    );
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -64,8 +74,14 @@ const LaundryOrdersList = () => {
     openPaymentDialog(totalAmount, orderNumber);
   };
 
-  const handlePaymentComplete = (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
+  const handlePaymentComplete = async (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
     const paymentData = processPayment(paidAmount, change);
+    
+    // Find the order and update payment status
+    const order = orders.find(o => o.order_number === orderNumber);
+    if (order) {
+      await updateStatus(order.id, 'selesai');
+    }
     
     // Generate receipt
     const receiptData = generateReceipt(
@@ -123,6 +139,7 @@ const LaundryOrdersList = () => {
                     <TableHead className="w-16">No.</TableHead>
                     <TableHead>No. Pesanan</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Pembayaran</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Tanggal</TableHead>
                     <TableHead>Catatan</TableHead>
@@ -132,7 +149,7 @@ const LaundryOrdersList = () => {
                 <TableBody>
                   {orders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                         Tidak ada pesanan ditemukan
                       </TableCell>
                     </TableRow>
@@ -144,6 +161,7 @@ const LaundryOrdersList = () => {
                         </TableCell>
                         <TableCell className="font-medium">{order.order_number}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>{getPaymentStatusBadge(order.payment_status)}</TableCell>
                         <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                         <TableCell>{new Date(order.created_at).toLocaleDateString('id-ID')}</TableCell>
                         <TableCell className="max-w-xs truncate">{order.notes}</TableCell>
@@ -178,7 +196,7 @@ const LaundryOrdersList = () => {
                                 Selesai
                               </Button>
                             )}
-                            {order.status === 'selesai' && (
+                            {order.status === 'selesai' && !order.payment_status && (
                               <Button 
                                 size="sm"
                                 onClick={() => handlePayment(order.total_amount, order.order_number)}

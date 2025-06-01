@@ -76,7 +76,7 @@ const WarungCashier = () => {
       total_amount: totalAmount,
       notes: orderNotes,
       status: 'selesai',
-      payment_status: true
+      payment_status: false
     });
 
     if (success) {
@@ -86,7 +86,7 @@ const WarungCashier = () => {
     }
   };
 
-  const handlePaymentConfirmed = async (paidAmount: number, change: number) => {
+  const handlePaymentComplete = async (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
     const paymentData = processPayment(paidAmount, change);
     
     // Update stock for each product
@@ -127,6 +127,8 @@ const WarungCashier = () => {
         return queryKey.includes('warung');
       }
     });
+
+    closePaymentDialog();
   };
 
   const formatCurrency = (amount: number) => {
@@ -192,11 +194,11 @@ const WarungCashier = () => {
 
       {/* Payment Dialog */}
       <PaymentDialog
-        totalAmount={paymentDialog.totalAmount}
         isOpen={paymentDialog.isOpen}
-        onOpenChange={closePaymentDialog}
-        onPaymentConfirmed={handlePaymentConfirmed}
+        onClose={closePaymentDialog}
+        totalAmount={paymentDialog.totalAmount}
         orderNumber={paymentDialog.orderNumber}
+        onPaymentComplete={handlePaymentComplete}
       />
     </div>
   );

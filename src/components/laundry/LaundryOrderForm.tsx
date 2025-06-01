@@ -21,6 +21,10 @@ const LaundryOrderForm = () => {
     isFormValid
   } = useLaundryOrderForm();
 
+  const handleOrderDataChange = (data: Partial<typeof orderData>) => {
+    setOrderData(prev => ({ ...prev, ...data }));
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -30,29 +34,29 @@ const LaundryOrderForm = () => {
       <CardContent className="space-y-4">
         <CustomerSelection
           orderData={orderData}
-          setOrderData={setOrderData}
+          setOrderData={handleOrderDataChange}
           onCustomerAdded={handleCustomerAdded}
         />
         
         <ServiceDetails
           orderData={orderData}
-          setOrderData={setOrderData}
+          setOrderData={handleOrderDataChange}
           services={services}
         />
 
         <DeliveryOptions
           orderData={orderData}
-          setOrderData={setOrderData}
+          setOrderData={handleOrderDataChange}
         />
 
         <LaundryPaymentOptions
           orderData={orderData}
-          setOrderData={setOrderData}
+          setOrderData={handleOrderDataChange}
         />
 
         <OrderNotes
           orderData={orderData}
-          setOrderData={setOrderData}
+          setOrderData={handleOrderDataChange}
         />
 
         <OrderSummary

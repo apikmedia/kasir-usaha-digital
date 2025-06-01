@@ -53,11 +53,19 @@ const CuciMotorOrdersList = () => {
     }
   };
 
+  const getPaymentStatusBadge = (paymentStatus: boolean) => {
+    return paymentStatus ? (
+      <Badge className="bg-green-100 text-green-800">Lunas</Badge>
+    ) : (
+      <Badge className="bg-orange-100 text-orange-800">Belum Bayar</Badge>
+    );
+  };
+
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     setUpdatingOrders(prev => new Set(prev).add(orderId));
     try {
-      const success = await updateOrderStatus(orderId, status);
-      if (success) {
+      const result = await updateOrderStatus(orderId, status);
+      if (result.success) {
         console.log('Status updated successfully, triggering refresh');
         invalidate();
       }
@@ -74,8 +82,14 @@ const CuciMotorOrdersList = () => {
     openPaymentDialog(totalAmount, orderNumber);
   };
 
-  const handlePaymentComplete = (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
+  const handlePaymentComplete = async (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
     const paymentData = processPayment(paidAmount, change);
+    
+    // Find the order and update payment status
+    const order = orders.find(o => o.order_number === orderNumber);
+    if (order) {
+      await updateOrderStatus(order.id, 'selesai');
+    }
     
     // Generate receipt
     const receiptData = generateReceipt(
@@ -90,6 +104,7 @@ const CuciMotorOrdersList = () => {
     );
 
     closePaymentDialog();
+    invalidate();
   };
 
   return (
@@ -120,6 +135,7 @@ const CuciMotorOrdersList = () => {
                   <TableHead>Motor</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Pembayaran</TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
@@ -127,7 +143,7 @@ const CuciMotorOrdersList = () => {
               <TableBody>
                 {orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                       Tidak ada pesanan ditemukan
                     </TableCell>
                   </TableRow>
@@ -144,6 +160,7 @@ const CuciMotorOrdersList = () => {
                           {getStatusText(order.status)}
                         </Badge>
                       </TableCell>
+                      <TableCell>{getPaymentStatusBadge(order.payment_status)}</TableCell>
                       <TableCell>{formatDate(order.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex space-x-1">
@@ -177,7 +194,7 @@ const CuciMotorOrdersList = () => {
                               Selesai
                             </Button>
                           )}
-                          {order.status === 'selesai' && (
+                          {order.status === 'selesai' && !order.payment_status && (
                             <Button 
                               size="sm"
                               onClick={() => handlePayment(order.total_amount, order.order_number)}

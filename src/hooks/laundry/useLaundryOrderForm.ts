@@ -10,7 +10,7 @@ export const useLaundryOrderForm = () => {
   const { services } = useServices('laundry');
   const { toast } = useToast();
   
-  const [orderData, setOrderData] = useState<LaundryOrderFormData>({
+  const [orderData, setOrderData] = useState<LaundryOrderFormData & { payment_status?: string }>({
     customer_id: '',
     customer_name: '',
     weight: '',
@@ -18,7 +18,8 @@ export const useLaundryOrderForm = () => {
     notes: '',
     pickup_delivery: false,
     delivery_address: '',
-    delivery_fee: ''
+    delivery_fee: '',
+    payment_status: 'unpaid'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +33,8 @@ export const useLaundryOrderForm = () => {
       notes: '',
       pickup_delivery: false,
       delivery_address: '',
-      delivery_fee: ''
+      delivery_fee: '',
+      payment_status: 'unpaid'
     });
   };
 
@@ -124,7 +126,8 @@ export const useLaundryOrderForm = () => {
         `Harga: Rp ${new Intl.NumberFormat('id-ID').format(baseAmount)}`,
         orderData.notes.trim() && `Catatan: ${orderData.notes.trim()}`,
         orderData.pickup_delivery && `Antar Jemput: ${orderData.delivery_address.trim()}`,
-        orderData.pickup_delivery && deliveryFee > 0 && `Biaya Antar: Rp ${new Intl.NumberFormat('id-ID').format(deliveryFee)}`
+        orderData.pickup_delivery && deliveryFee > 0 && `Biaya Antar: Rp ${new Intl.NumberFormat('id-ID').format(deliveryFee)}`,
+        orderData.payment_status === 'paid_upfront' && `Status: Lunas - Bayar di Muka`
       ].filter(Boolean).join(', ');
       
       console.log('Order notes:', orderNotes);
@@ -133,7 +136,8 @@ export const useLaundryOrderForm = () => {
         customer_id: orderData.customer_id || null,
         total_amount: totalAmount,
         notes: orderNotes,
-        status: 'antrian' as const
+        status: 'antrian' as const,
+        payment_status: orderData.payment_status === 'paid_upfront'
       };
       
       console.log('Final order data:', orderPayload);
@@ -159,11 +163,11 @@ export const useLaundryOrderForm = () => {
 
   const handleCustomerAdded = (customer: any) => {
     if (customer && customer.id && customer.name) {
-      setOrderData({
-        ...orderData,
+      setOrderData(prev => ({
+        ...prev,
         customer_id: customer.id,
         customer_name: customer.name
-      });
+      }));
     }
   };
 
