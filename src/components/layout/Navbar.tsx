@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Bell, User, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import PremiumBadge from '@/components/subscription/PremiumBadge';
+import TryPremiumButton from '@/components/subscription/TryPremiumButton';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface NavbarProps {
   businessType?: 'laundry' | 'warung' | 'cuci_motor';
@@ -13,6 +16,7 @@ interface NavbarProps {
 
 const Navbar = ({ businessType, userName = "User", onLogout }: NavbarProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { subscriptionData } = useSubscription();
 
   const getBusinessTypeLabel = (type?: string) => {
     switch (type) {
@@ -42,6 +46,16 @@ const Navbar = ({ businessType, userName = "User", onLogout }: NavbarProps) => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-4">
+            <PremiumBadge 
+              plan={subscriptionData.plan}
+              is_trial={subscriptionData.is_trial}
+              days_remaining={subscriptionData.days_remaining}
+            />
+            
+            {!subscriptionData.has_premium_access && (
+              <TryPremiumButton variant="outline" size="sm" />
+            )}
+            
             <Button variant="ghost" size="sm" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs"></span>
@@ -81,10 +95,19 @@ const Navbar = ({ businessType, userName = "User", onLogout }: NavbarProps) => {
               </SheetTrigger>
               <SheetContent side="right" className="w-64 bg-white">
                 <div className="flex flex-col space-y-4 mt-8">
-                  <div className="flex items-center space-x-2 p-2">
-                    <User className="h-5 w-5" />
+                  <div className="flex items-center justify-between p-2">
                     <span>{userName}</span>
+                    <PremiumBadge 
+                      plan={subscriptionData.plan}
+                      is_trial={subscriptionData.is_trial}
+                      days_remaining={subscriptionData.days_remaining}
+                    />
                   </div>
+                  
+                  {!subscriptionData.has_premium_access && (
+                    <TryPremiumButton className="w-full" />
+                  )}
+                  
                   <Button variant="ghost" className="justify-start">
                     <Bell className="mr-2 h-5 w-5" />
                     Notifikasi

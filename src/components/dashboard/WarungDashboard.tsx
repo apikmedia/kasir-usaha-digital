@@ -1,11 +1,12 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart, Settings } from "lucide-react";
+import { ShoppingCart, Settings, Crown } from "lucide-react";
 import WarungCashier from './WarungCashier';
 import WarungProductsList from './WarungProductsList';
 import WarungOrdersHistory from './WarungOrdersHistory';
 import WarungReports from './WarungReports';
 import SettingsPage from '../settings/SettingsPage';
+import SubscriptionManager from '@/components/subscription/SubscriptionManager';
 
 const WarungDashboard = () => {
   return (
@@ -16,11 +17,15 @@ const WarungDashboard = () => {
       </div>
 
       <Tabs defaultValue="cashier" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="cashier">Kasir</TabsTrigger>
           <TabsTrigger value="products">Kelola Produk</TabsTrigger>
           <TabsTrigger value="orders">Riwayat</TabsTrigger>
           <TabsTrigger value="reports">Laporan</TabsTrigger>
+          <TabsTrigger value="subscription" className="flex items-center space-x-1">
+            <Crown className="h-4 w-4" />
+            <span>Premium</span>
+          </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center space-x-1">
             <Settings className="h-4 w-4" />
             <span>Pengaturan</span>
@@ -41,6 +46,10 @@ const WarungDashboard = () => {
 
         <TabsContent value="reports">
           <WarungReports />
+        </TabsContent>
+
+        <TabsContent value="subscription">
+          <SubscriptionManager />
         </TabsContent>
 
         <TabsContent value="settings">

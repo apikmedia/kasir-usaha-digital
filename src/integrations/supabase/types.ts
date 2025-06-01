@@ -279,6 +279,51 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          is_trial: boolean
+          subscription_end_date: string | null
+          subscription_plan: Database["public"]["Enums"]["subscription_plan_type"]
+          subscription_start_date: string | null
+          trial_end_date: string | null
+          trial_start_date: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          is_trial?: boolean
+          subscription_end_date?: string | null
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan_type"]
+          subscription_start_date?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          is_trial?: boolean
+          subscription_end_date?: string | null
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan_type"]
+          subscription_start_date?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           created_at: string
@@ -315,6 +360,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_premium_access: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       generate_order_number: {
         Args: { business_prefix: string }
         Returns: string
@@ -327,12 +376,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      revert_to_basic: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      start_premium_trial: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       business_type: "laundry" | "warung" | "cuci_motor"
       order_status: "antrian" | "proses" | "selesai"
       payment_method: "cash" | "transfer"
       subscription_plan: "basic" | "premium"
+      subscription_plan_type: "basic" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -452,6 +510,7 @@ export const Constants = {
       order_status: ["antrian", "proses", "selesai"],
       payment_method: ["cash", "transfer"],
       subscription_plan: ["basic", "premium"],
+      subscription_plan_type: ["basic", "premium"],
     },
   },
 } as const

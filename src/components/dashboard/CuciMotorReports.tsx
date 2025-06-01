@@ -5,11 +5,15 @@ import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
 import { useOptimizedServices } from '@/hooks/services/useOptimizedServices';
 import { useOptimizedCustomers } from '@/hooks/customers/useOptimizedCustomers';
 import OptimizedLoader from '@/components/ui/OptimizedLoader';
+import PremiumFeatureWrapper from '@/components/subscription/PremiumFeatureWrapper';
+import ExportButton from '@/components/reports/ExportButton';
+import { useToast } from '@/hooks/use-toast';
 
 const CuciMotorReports = () => {
   const { orders, loading: ordersLoading } = useOptimizedOrders('cuci_motor');
   const { services, loading: servicesLoading } = useOptimizedServices('cuci_motor');
   const { customers, loading: customersLoading } = useOptimizedCustomers('cuci_motor');
+  const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -52,6 +56,20 @@ const CuciMotorReports = () => {
     { name: 'Selesai', value: orders.filter(o => o.status === 'selesai').length, color: '#D1FAE5' }
   ];
 
+  const handleExportPDF = () => {
+    toast({
+      title: "Export PDF",
+      description: "Fitur export PDF akan segera tersedia",
+    });
+  };
+
+  const handleExportExcel = () => {
+    toast({
+      title: "Export Excel",
+      description: "Fitur export Excel akan segera tersedia",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -79,6 +97,19 @@ const CuciMotorReports = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with Export */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Laporan Cuci Motor</CardTitle>
+              <CardDescription>Ringkasan aktivitas dan pendapatan</CardDescription>
+            </div>
+            <ExportButton onExportPDF={handleExportPDF} onExportExcel={handleExportExcel} />
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
@@ -118,54 +149,59 @@ const CuciMotorReports = () => {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Pendapatan Bulanan</CardTitle>
-            <CardDescription>Grafik pendapatan per bulan</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Bar dataKey="revenue" fill="#8B5CF6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Premium Charts */}
+      <PremiumFeatureWrapper
+        title="Analisis Detail Cuci Motor"
+        description="Akses grafik dan analisis mendalam dengan fitur premium"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pendapatan Bulanan</CardTitle>
+              <CardDescription>Grafik pendapatan per bulan</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Bar dataKey="revenue" fill="#8B5CF6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Status Pesanan</CardTitle>
-            <CardDescription>Distribusi status pesanan</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Pesanan</CardTitle>
+              <CardDescription>Distribusi status pesanan</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </PremiumFeatureWrapper>
 
       {/* Service and Customer Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
