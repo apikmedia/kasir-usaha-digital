@@ -3,11 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, Clock, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, Loader2, CreditCard } from "lucide-react";
 import { useOptimizedOrders } from '@/hooks/useOptimizedOrders';
 import { useOrderOperations } from '@/hooks/useOrderOperations';
 import CuciMotorAddOrderDialog from '@/components/CuciMotorAddOrderDialog';
 import OptimizedLoader from '@/components/ui/OptimizedLoader';
+import PaymentDialog from '@/components/payment/PaymentDialog';
+import ReceiptGenerator from '@/components/receipt/ReceiptGenerator';
+import { usePayment } from '@/hooks/usePayment';
+import { useReceipt } from '@/hooks/useReceipt';
 import { useState } from 'react';
 import type { OrderStatus } from '@/types/order';
 
@@ -15,6 +19,9 @@ const CuciMotorOrdersList = () => {
   const { orders, loading: ordersLoading, invalidate } = useOptimizedOrders('cuci_motor');
   const { updateOrderStatus } = useOrderOperations();
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set());
+  
+  const { paymentDialog, openPaymentDialog, closePaymentDialog, processPayment } = usePayment();
+  const { generateReceipt, currentReceipt } = useReceipt();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -52,7 +59,6 @@ const CuciMotorOrdersList = () => {
       const success = await updateOrderStatus(orderId, status);
       if (success) {
         console.log('Status updated successfully, triggering refresh');
-        // Force immediate refresh to show the updated status
         invalidate();
       }
     } finally {
@@ -64,100 +70,145 @@ const CuciMotorOrdersList = () => {
     }
   };
 
+  const handlePayment = (totalAmount: number, orderNumber: string) => {
+    openPaymentDialog(totalAmount, orderNumber);
+  };
+
+  const handlePaymentComplete = (paidAmount: number, change: number, paymentMethod: string, orderNumber: string) => {
+    const paymentData = processPayment(paidAmount, change);
+    
+    // Generate receipt
+    const receiptData = generateReceipt(
+      orderNumber,
+      'cuci_motor',
+      [{ name: 'Cuci Motor', quantity: 1, price: paymentData.totalAmount, subtotal: paymentData.totalAmount }],
+      paymentData.totalAmount,
+      paymentData.paidAmount,
+      paymentData.change,
+      paymentData.customerName,
+      'Pembayaran berhasil'
+    );
+
+    closePaymentDialog();
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Daftar Pesanan Cuci Motor</CardTitle>
-          <CardDescription>
-            Total: {orders.length} pesanan
-          </CardDescription>
-        </div>
-        <div className="flex items-center space-x-2">
-          {ordersLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-          <CuciMotorAddOrderDialog />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {ordersLoading ? (
-          <OptimizedLoader type="table" count={5} />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No.</TableHead>
-                <TableHead>No. Order</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Motor</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.length === 0 ? (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Daftar Pesanan Cuci Motor</CardTitle>
+            <CardDescription>
+              Total: {orders.length} pesanan
+            </CardDescription>
+          </div>
+          <div className="flex items-center space-x-2">
+            {ordersLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            <CuciMotorAddOrderDialog />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {ordersLoading ? (
+            <OptimizedLoader type="table" count={5} />
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    Tidak ada pesanan ditemukan
-                  </TableCell>
+                  <TableHead>No.</TableHead>
+                  <TableHead>No. Order</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Motor</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Aksi</TableHead>
                 </TableRow>
-              ) : (
-                orders.map((order, index) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{index + 1}</TableCell>
-                    <TableCell className="font-medium">{order.order_number}</TableCell>
-                    <TableCell>{order.customer_name || '-'}</TableCell>
-                    <TableCell>{order.notes || '-'}</TableCell>
-                    <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(order.status)}>
-                        {getStatusText(order.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(order.created_at)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-1">
-                        {order.status === 'antrian' && (
-                          <Button 
-                            size="sm"
-                            onClick={() => handleUpdateStatus(order.id, 'proses')}
-                            className="bg-blue-500 hover:bg-blue-600 text-white"
-                            disabled={updatingOrders.has(order.id)}
-                          >
-                            {updatingOrders.has(order.id) ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            ) : (
-                              <Clock className="h-4 w-4 mr-1" />
-                            )}
-                            Proses
-                          </Button>
-                        )}
-                        {order.status === 'proses' && (
-                          <Button 
-                            size="sm"
-                            onClick={() => handleUpdateStatus(order.id, 'selesai')}
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                            disabled={updatingOrders.has(order.id)}
-                          >
-                            {updatingOrders.has(order.id) ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            ) : (
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                            )}
-                            Selesai
-                          </Button>
-                        )}
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      Tidak ada pesanan ditemukan
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+                ) : (
+                  orders.map((order, index) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
+                      <TableCell className="font-medium">{order.order_number}</TableCell>
+                      <TableCell>{order.customer_name || '-'}</TableCell>
+                      <TableCell>{order.notes || '-'}</TableCell>
+                      <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(order.status)}>
+                          {getStatusText(order.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDate(order.created_at)}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-1">
+                          {order.status === 'antrian' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleUpdateStatus(order.id, 'proses')}
+                              className="bg-blue-500 hover:bg-blue-600 text-white"
+                              disabled={updatingOrders.has(order.id)}
+                            >
+                              {updatingOrders.has(order.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <Clock className="h-4 w-4 mr-1" />
+                              )}
+                              Proses
+                            </Button>
+                          )}
+                          {order.status === 'proses' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleUpdateStatus(order.id, 'selesai')}
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              disabled={updatingOrders.has(order.id)}
+                            >
+                              {updatingOrders.has(order.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Selesai
+                            </Button>
+                          )}
+                          {order.status === 'selesai' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handlePayment(order.total_amount, order.order_number)}
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                            >
+                              <CreditCard className="h-4 w-4 mr-1" />
+                              Bayar
+                            </Button>
+                          )}
+                          {currentReceipt && currentReceipt.orderNumber === order.order_number && (
+                            <ReceiptGenerator receiptData={currentReceipt} />
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <PaymentDialog
+        isOpen={paymentDialog.isOpen}
+        onClose={closePaymentDialog}
+        totalAmount={paymentDialog.totalAmount}
+        orderNumber={paymentDialog.orderNumber}
+        onPaymentComplete={handlePaymentComplete}
+      />
+    </>
   );
 };
 

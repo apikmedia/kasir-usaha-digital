@@ -6,6 +6,7 @@ import ServiceDetails from './ServiceDetails';
 import DeliveryOptions from './DeliveryOptions';
 import OrderNotes from './OrderNotes';
 import OrderSummary from './OrderSummary';
+import LaundryPaymentOptions from './LaundryPaymentOptions';
 import CreateOrderButton from './CreateOrderButton';
 
 const LaundryOrderForm = () => {
@@ -40,6 +41,11 @@ const LaundryOrderForm = () => {
         />
 
         <DeliveryOptions
+          orderData={orderData}
+          setOrderData={setOrderData}
+        />
+
+        <LaundryPaymentOptions
           orderData={orderData}
           setOrderData={setOrderData}
         />

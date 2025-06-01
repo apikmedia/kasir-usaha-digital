@@ -8,4 +8,5 @@ export interface LaundryOrderFormData {
   pickup_delivery: boolean;
   delivery_address: string;
   delivery_fee: string;
+  payment_status?: string;
 }
