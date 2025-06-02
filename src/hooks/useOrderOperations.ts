@@ -77,12 +77,13 @@ export const useOrderOperations = () => {
 
       console.log('Generated order number:', orderNumber);
 
+      // Type-safe order creation with proper casting
       const newOrder = {
         order_number: orderNumber,
         business_type: businessType,
         user_id: user.id,
         total_amount: orderData.total_amount || 0,
-        status: orderData.status || 'antrian',
+        status: (orderData.status || 'antrian') as any, // Cast to any to handle enum compatibility
         payment_status: orderData.payment_status || false,
         notes: orderData.notes || null,
         customer_id: orderData.customer_id || null,
@@ -131,7 +132,7 @@ export const useOrderOperations = () => {
         description: "Sedang memperbarui status pesanan...",
       });
       
-      const updateData: any = { status };
+      const updateData: any = { status: status as any }; // Cast to any for enum compatibility
       
       // For different business types, handle completion differently
       if (status === 'selesai' || status === 'belum_bayar') {

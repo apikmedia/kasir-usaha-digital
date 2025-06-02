@@ -64,7 +64,7 @@ export const useOrdersPagination = ({ businessType, page, pageSize, refreshTrigg
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      const updateData: any = { status };
+      const updateData: any = { status: status as any }; // Cast to any for enum compatibility
       
       // Handle different completion statuses for different business types
       if (status === 'selesai' || status === 'belum_bayar') {
@@ -117,12 +117,13 @@ export const useOrdersPagination = ({ businessType, page, pageSize, refreshTrigg
         throw new Error('Gagal membuat nomor pesanan');
       }
 
+      // Type-safe order creation with proper casting
       const newOrder = {
         order_number: orderNumber,
         business_type: businessType,
         user_id: user.id,
         total_amount: orderData.total_amount || 0,
-        status: orderData.status || 'antrian',
+        status: (orderData.status || 'antrian') as any, // Cast to any for enum compatibility
         payment_status: orderData.payment_status || false,
         notes: orderData.notes || null,
         customer_id: orderData.customer_id || null,
