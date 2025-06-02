@@ -1,3 +1,4 @@
+
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import LaundryOrderActions from './LaundryOrderActions';
@@ -26,10 +27,10 @@ const LaundryOrderRow = ({
     switch (status) {
       case 'antrian':
         return <Badge variant="secondary">Antrian</Badge>;
-      case 'proses':
-        return <Badge variant="default">Proses</Badge>;
-      case 'selesai':
-        return <Badge variant="destructive">Selesai</Badge>;
+      case 'siap_ambil':
+        return <Badge variant="default">Siap Ambil</Badge>;
+      case 'belum_bayar':
+        return <Badge variant="destructive">Belum Bayar</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

@@ -1,6 +1,6 @@
 
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import LaundryOrderModal from './LaundryOrderModal';
 
 interface LaundryOrdersHeaderProps {
   totalCount: number;
@@ -15,12 +15,14 @@ const LaundryOrdersHeader = ({ totalCount, currentPage, totalPages, isLoading }:
       <div>
         <CardTitle>Daftar Pesanan</CardTitle>
         <CardDescription>
-          Total: {totalCount} pesanan | Halaman {currentPage} dari {totalPages}
+          {isLoading ? (
+            "Memuat data pesanan..."
+          ) : (
+            `Total ${totalCount} pesanan • Halaman ${currentPage} dari ${totalPages}`
+          )}
         </CardDescription>
       </div>
-      {isLoading && (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      )}
+      <LaundryOrderModal />
     </CardHeader>
   );
 };

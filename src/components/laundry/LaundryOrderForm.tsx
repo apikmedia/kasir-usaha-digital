@@ -9,7 +9,11 @@ import OrderSummary from './OrderSummary';
 import LaundryPaymentOptions from './LaundryPaymentOptions';
 import CreateOrderButton from './CreateOrderButton';
 
-const LaundryOrderForm = () => {
+interface LaundryOrderFormProps {
+  onOrderCreated?: () => void;
+}
+
+const LaundryOrderForm = ({ onOrderCreated }: LaundryOrderFormProps) => {
   const {
     orderData,
     setOrderData,
@@ -19,7 +23,7 @@ const LaundryOrderForm = () => {
     handleCustomerAdded,
     calculateTotal,
     isFormValid
-  } = useLaundryOrderForm();
+  } = useLaundryOrderForm(onOrderCreated);
 
   const handleOrderDataChange = (data: Partial<typeof orderData>) => {
     setOrderData(prev => ({ ...prev, ...data }));

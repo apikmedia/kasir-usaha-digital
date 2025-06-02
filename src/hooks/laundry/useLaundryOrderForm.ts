@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { useOrders } from '@/hooks/useOrders';
 import { useServices } from '@/hooks/useServices';
 import { useToast } from '@/hooks/use-toast';
+import { useReceipt } from '@/hooks/useReceipt';
 import type { LaundryOrderFormData } from '@/components/laundry/types';
 
-export const useLaundryOrderForm = () => {
+export const useLaundryOrderForm = (onOrderCreated?: () => void) => {
   const { createOrder } = useOrders('laundry');
   const { services } = useServices('laundry');
   const { toast } = useToast();
+  const { generateReceipt } = useReceipt();
   
   const [orderData, setOrderData] = useState<LaundryOrderFormData & { payment_status?: string }>({
     customer_id: '',
@@ -142,11 +144,41 @@ export const useLaundryOrderForm = () => {
       
       console.log('Final order data:', orderPayload);
 
-      const success = await createOrder(orderPayload);
+      const result = await createOrder(orderPayload);
 
-      if (success) {
-        console.log('Order created successfully, resetting form...');
+      if (result) {
+        console.log('Order created successfully, generating receipt...');
+        
+        // Generate and show receipt
+        const receiptData = generateReceipt(
+          `LDY${Date.now()}`, // Temporary order number
+          'laundry',
+          [{ 
+            name: `${selectedService.name} (${weightValue}kg)`, 
+            quantity: 1, 
+            price: totalAmount, 
+            subtotal: totalAmount 
+          }],
+          totalAmount,
+          orderData.payment_status === 'paid_upfront' ? totalAmount : 0,
+          0,
+          orderData.customer_name,
+          'Pesanan berhasil dibuat'
+        );
+
+        // Show receipt in toast or modal
+        toast({
+          title: "Pesanan Berhasil Dibuat!",
+          description: `Nota akan ditampilkan. Total: Rp ${new Intl.NumberFormat('id-ID').format(totalAmount)}`,
+        });
+
+        console.log('Receipt generated:', receiptData);
         resetForm();
+        
+        if (onOrderCreated) {
+          onOrderCreated();
+        }
+        
         console.log('Form reset completed');
       }
     } catch (error) {

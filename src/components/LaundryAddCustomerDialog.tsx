@@ -19,7 +19,6 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
   const [customerData, setCustomerData] = useState({
     name: '',
     phone: '',
-    email: '',
     address: '',
     notes: ''
   });
@@ -34,7 +33,6 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
     const result = await createCustomer({
       name: customerData.name.trim(),
       phone: customerData.phone.trim() || undefined,
-      email: customerData.email.trim() || undefined,
       address: customerData.address.trim() || undefined,
       notes: customerData.notes.trim() || undefined,
       business_type: 'laundry' as const
@@ -44,7 +42,6 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
       setCustomerData({
         name: '',
         phone: '',
-        email: '',
         address: '',
         notes: ''
       });
@@ -99,17 +96,6 @@ const LaundryAddCustomerDialog = ({ triggerVariant = 'default', onCustomerAdded 
               value={customerData.phone}
               onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
               placeholder="08xxxxxxxxxx"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="customer-email">Email</Label>
-            <Input
-              id="customer-email"
-              type="email"
-              value={customerData.email}
-              onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
-              placeholder="email@contoh.com"
             />
           </div>
 
