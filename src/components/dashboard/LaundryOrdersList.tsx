@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrdersPagination } from '@/hooks/useOrdersPagination';
@@ -43,7 +44,7 @@ const LaundryOrdersList = () => {
     // Find the order and update payment status
     const order = orders.find(o => o.order_number === orderNumber);
     if (order) {
-      await updateStatus(order.id, 'selesai' as OrderStatus);
+      await updateStatus(order.id, 'belum_bayar' as OrderStatus);
     }
     
     // Generate receipt

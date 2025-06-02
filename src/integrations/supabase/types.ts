@@ -387,7 +387,7 @@ export type Database = {
     }
     Enums: {
       business_type: "laundry" | "warung" | "cuci_motor"
-      order_status: "antrian" | "proses" | "selesai"
+      order_status: "antrian" | "siap_ambil" | "belum_bayar"
       payment_method: "cash" | "transfer"
       subscription_plan: "basic" | "premium"
       subscription_plan_type: "basic" | "premium"
@@ -507,7 +507,7 @@ export const Constants = {
   public: {
     Enums: {
       business_type: ["laundry", "warung", "cuci_motor"],
-      order_status: ["antrian", "proses", "selesai"],
+      order_status: ["antrian", "siap_ambil", "belum_bayar"],
       payment_method: ["cash", "transfer"],
       subscription_plan: ["basic", "premium"],
       subscription_plan_type: ["basic", "premium"],
