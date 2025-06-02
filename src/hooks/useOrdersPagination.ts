@@ -65,7 +65,9 @@ export const useOrdersPagination = ({ businessType, page, pageSize, refreshTrigg
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       const updateData: any = { status };
-      if (status === 'selesai') {
+      
+      // Handle different completion statuses for different business types
+      if (status === 'selesai' || status === 'belum_bayar') {
         updateData.finished_at = new Date().toISOString();
       }
 

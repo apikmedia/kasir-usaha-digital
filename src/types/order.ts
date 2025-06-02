@@ -3,7 +3,7 @@ export interface Order {
   id: string;
   order_number: string;
   business_type: 'laundry' | 'warung' | 'cuci_motor';
-  status: 'antrian' | 'siap_ambil' | 'belum_bayar';
+  status: 'antrian' | 'siap_ambil' | 'belum_bayar' | 'proses' | 'selesai';
   total_amount: number;
   payment_method?: 'cash' | 'transfer';
   payment_status: boolean;
@@ -17,5 +17,5 @@ export interface Order {
 }
 
 export type BusinessType = 'laundry' | 'warung' | 'cuci_motor';
-export type OrderStatus = 'antrian' | 'siap_ambil' | 'belum_bayar';
+export type OrderStatus = 'antrian' | 'siap_ambil' | 'belum_bayar' | 'proses' | 'selesai';
 export type PaymentMethod = 'cash' | 'transfer';

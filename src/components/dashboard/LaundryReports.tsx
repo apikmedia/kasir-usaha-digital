@@ -36,7 +36,8 @@ const LaundryReports = () => {
       return orderDate === today;
     });
 
-    const completedTodayOrders = todayOrders.filter(o => o.status === 'selesai');
+    // For laundry, completed orders are those with payment_status true or status 'belum_bayar' (completed but not paid)
+    const completedTodayOrders = todayOrders.filter(o => o.payment_status || o.status === 'belum_bayar');
     const todayRevenue = completedTodayOrders.reduce((sum, o) => sum + o.total_amount, 0);
 
     return {
@@ -47,8 +48,10 @@ const LaundryReports = () => {
   }, [orders]);
 
   const chartData = useMemo(() => {
-    const monthlyData = orders
-      .filter(o => o.status === 'selesai')
+    // For laundry, completed orders are those with payment_status true
+    const completedOrders = orders.filter(o => o.payment_status);
+    
+    const monthlyData = completedOrders
       .reduce((acc, order) => {
         const month = new Date(order.created_at).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
         const existing = acc.find(item => item.month === month);
@@ -71,7 +74,7 @@ const LaundryReports = () => {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      const dayOrders = orders.filter(o => o.created_at.startsWith(dateStr) && o.status === 'selesai');
+      const dayOrders = orders.filter(o => o.created_at.startsWith(dateStr) && o.payment_status);
       const revenue = dayOrders.reduce((sum, o) => sum + o.total_amount, 0);
       
       return {

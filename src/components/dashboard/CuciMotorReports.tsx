@@ -25,7 +25,7 @@ const CuciMotorReports = () => {
 
   const isLoading = ordersLoading || servicesLoading || customersLoading;
 
-  // Calculate stats
+  // Calculate stats - for cuci motor, completed orders are those with status 'selesai'
   const stats = {
     totalOrders: orders.length,
     completedOrders: orders.filter(o => o.status === 'selesai').length,
@@ -35,7 +35,7 @@ const CuciMotorReports = () => {
       : 0
   };
 
-  // Revenue by month data
+  // Revenue by month data - for cuci motor, only count completed orders
   const monthlyData = orders
     .filter(o => o.status === 'selesai')
     .reduce((acc, order) => {
@@ -49,7 +49,7 @@ const CuciMotorReports = () => {
       return acc;
     }, [] as Array<{ month: string; revenue: number }>);
 
-  // Order status data for pie chart
+  // Order status data for pie chart - cuci motor uses antrian, proses, selesai
   const statusData = [
     { name: 'Antrian', value: orders.filter(o => o.status === 'antrian').length, color: '#FEF3C7' },
     { name: 'Proses', value: orders.filter(o => o.status === 'proses').length, color: '#DBEAFE' },

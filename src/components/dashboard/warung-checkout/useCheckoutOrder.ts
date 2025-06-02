@@ -29,7 +29,7 @@ export const useCheckoutOrder = () => {
       total_amount: totalAmount,
       notes: orderNotes,
       status: 'selesai',
-      payment_status: false
+      payment_status: true
     });
 
     if (success) {

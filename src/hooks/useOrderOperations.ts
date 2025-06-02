@@ -132,7 +132,9 @@ export const useOrderOperations = () => {
       });
       
       const updateData: any = { status };
-      if (status === 'selesai') {
+      
+      // For different business types, handle completion differently
+      if (status === 'selesai' || status === 'belum_bayar') {
         updateData.finished_at = new Date().toISOString();
       }
 
