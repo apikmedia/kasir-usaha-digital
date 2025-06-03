@@ -5,9 +5,14 @@ import CuciMotorCustomersList from './CuciMotorCustomersList';
 import CuciMotorOrdersList from './CuciMotorOrdersList';
 import CuciMotorReports from './CuciMotorReports';
 
-const CuciMotorDashboardTabs = () => {
+interface CuciMotorDashboardTabsProps {
+  currentTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+const CuciMotorDashboardTabs = ({ currentTab, onTabChange }: CuciMotorDashboardTabsProps) => {
   return (
-    <Tabs defaultValue="orders" className="space-y-4">
+    <Tabs value={currentTab} onValueChange={onTabChange} className="space-y-4">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="orders">Pesanan</TabsTrigger>
         <TabsTrigger value="services">Layanan</TabsTrigger>
