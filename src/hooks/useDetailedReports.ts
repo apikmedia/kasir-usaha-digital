@@ -24,6 +24,10 @@ interface ReportData {
   generated_at: string;
 }
 
+interface ReportErrorResponse {
+  error: string;
+}
+
 export const useDetailedReports = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -49,10 +53,13 @@ export const useDetailedReports = () => {
         throw error;
       }
 
-      if (data.error) {
+      // Type guard to check if the response contains an error
+      const response = data as ReportData | ReportErrorResponse;
+      
+      if ('error' in response) {
         toast({
           title: "Premium Required",
-          description: data.error,
+          description: response.error,
           variant: "destructive",
         });
         return null;
@@ -63,7 +70,7 @@ export const useDetailedReports = () => {
         description: "Laporan detail telah berhasil dihasilkan",
       });
 
-      return data;
+      return response as ReportData;
     } catch (error) {
       console.error('Error in generateReport:', error);
       toast({

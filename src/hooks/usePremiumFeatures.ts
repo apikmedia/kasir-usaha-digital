@@ -10,6 +10,11 @@ interface PremiumAccess {
   days_remaining: number;
 }
 
+interface TrialResponse {
+  success: boolean;
+  message: string;
+}
+
 export const usePremiumFeatures = () => {
   const [premiumAccess, setPremiumAccess] = useState<PremiumAccess | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +29,7 @@ export const usePremiumFeatures = () => {
         return;
       }
       
-      setPremiumAccess(data);
+      setPremiumAccess(data as PremiumAccess);
     } catch (error) {
       console.error('Error in checkPremiumAccess:', error);
     } finally {
@@ -43,7 +48,7 @@ export const usePremiumFeatures = () => {
         return false;
       }
       
-      return data;
+      return data as boolean;
     } catch (error) {
       console.error('Error in checkFeatureAccess:', error);
       return false;
@@ -59,21 +64,23 @@ export const usePremiumFeatures = () => {
         throw error;
       }
       
-      if (data.success) {
+      const response = data as TrialResponse;
+      
+      if (response.success) {
         toast({
           title: "Trial Premium Aktif!",
-          description: data.message,
+          description: response.message,
         });
         checkPremiumAccess(); // Refresh access status
       } else {
         toast({
           title: "Gagal",
-          description: data.message,
+          description: response.message,
           variant: "destructive",
         });
       }
       
-      return data;
+      return response;
     } catch (error) {
       console.error('Error in startPremiumTrial:', error);
       toast({
