@@ -29,7 +29,7 @@ export const usePremiumFeatures = () => {
         return;
       }
       
-      setPremiumAccess(data as PremiumAccess);
+      setPremiumAccess(data as unknown as PremiumAccess);
     } catch (error) {
       console.error('Error in checkPremiumAccess:', error);
     } finally {
@@ -48,7 +48,7 @@ export const usePremiumFeatures = () => {
         return false;
       }
       
-      return data as boolean;
+      return data as unknown as boolean;
     } catch (error) {
       console.error('Error in checkFeatureAccess:', error);
       return false;
@@ -64,7 +64,7 @@ export const usePremiumFeatures = () => {
         throw error;
       }
       
-      const response = data as TrialResponse;
+      const response = data as unknown as TrialResponse;
       
       if (response.success) {
         toast({

@@ -54,7 +54,7 @@ export const useDetailedReports = () => {
       }
 
       // Type guard to check if the response contains an error
-      const response = data as ReportData | ReportErrorResponse;
+      const response = data as unknown as ReportData | ReportErrorResponse;
       
       if ('error' in response) {
         toast({
