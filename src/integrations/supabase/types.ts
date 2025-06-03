@@ -9,6 +9,122 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: string
+          revenue_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          event_data: Json
+          event_type: string
+          id?: string
+          revenue_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          id?: string
+          revenue_amount?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      backup_history: {
+        Row: {
+          backup_schedule_id: string | null
+          backup_size: number | null
+          backup_type: string
+          backup_url: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          backup_schedule_id?: string | null
+          backup_size?: number | null
+          backup_type: string
+          backup_url?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          backup_schedule_id?: string | null
+          backup_size?: number | null
+          backup_type?: string
+          backup_url?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_history_backup_schedule_id_fkey"
+            columns: ["backup_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "backup_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backup_schedules: {
+        Row: {
+          backup_settings: Json | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_backup_at: string | null
+          next_backup_at: string | null
+          schedule_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backup_settings?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_backup_at?: string | null
+          next_backup_at?: string | null
+          schedule_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backup_settings?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_backup_at?: string | null
+          next_backup_at?: string | null
+          schedule_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -43,6 +159,42 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
           updated_at?: string
           user_id?: string
         }
@@ -168,6 +320,113 @@ export type Database = {
           },
         ]
       }
+      payment_transactions: {
+        Row: {
+          bank: string | null
+          bill_key: string | null
+          biller_code: string | null
+          created_at: string
+          finish_redirect_url: string | null
+          fraud_status: string | null
+          gross_amount: number
+          id: string
+          metadata: Json | null
+          order_id: string
+          order_id_midtrans: string
+          payment_method: string | null
+          payment_type: string
+          pdf_url: string | null
+          settlement_time: string | null
+          transaction_id: string
+          transaction_status: string
+          updated_at: string
+          user_id: string
+          va_number: string | null
+        }
+        Insert: {
+          bank?: string | null
+          bill_key?: string | null
+          biller_code?: string | null
+          created_at?: string
+          finish_redirect_url?: string | null
+          fraud_status?: string | null
+          gross_amount: number
+          id?: string
+          metadata?: Json | null
+          order_id: string
+          order_id_midtrans: string
+          payment_method?: string | null
+          payment_type: string
+          pdf_url?: string | null
+          settlement_time?: string | null
+          transaction_id: string
+          transaction_status: string
+          updated_at?: string
+          user_id: string
+          va_number?: string | null
+        }
+        Update: {
+          bank?: string | null
+          bill_key?: string | null
+          biller_code?: string | null
+          created_at?: string
+          finish_redirect_url?: string | null
+          fraud_status?: string | null
+          gross_amount?: number
+          id?: string
+          metadata?: Json | null
+          order_id?: string
+          order_id_midtrans?: string
+          payment_method?: string | null
+          payment_type?: string
+          pdf_url?: string | null
+          settlement_time?: string | null
+          transaction_id?: string
+          transaction_status?: string
+          updated_at?: string
+          user_id?: string
+          va_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      premium_features_usage: {
+        Row: {
+          created_at: string
+          feature_name: string
+          id: string
+          last_used_at: string
+          usage_count: number | null
+          usage_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_name: string
+          id?: string
+          last_used_at?: string
+          usage_count?: number | null
+          usage_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_name?: string
+          id?: string
+          last_used_at?: string
+          usage_count?: number | null
+          usage_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
@@ -234,6 +493,39 @@ export type Database = {
           id?: string
           subscription_plan?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      reports_cache: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          expires_at: string
+          generated_at: string
+          id: string
+          report_data: Json
+          report_period: string
+          report_type: string
+          user_id: string
+        }
+        Insert: {
+          business_type: Database["public"]["Enums"]["business_type"]
+          expires_at: string
+          generated_at?: string
+          id?: string
+          report_data: Json
+          report_period: string
+          report_type: string
+          user_id: string
+        }
+        Update: {
+          business_type?: Database["public"]["Enums"]["business_type"]
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          report_data?: Json
+          report_period?: string
+          report_type?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -353,7 +645,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      dashboard_analytics: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"] | null
+          date: string | null
+          orders_completed: number | null
+          orders_created: number | null
+          payments_received: number | null
+          total_events: number | null
+          total_revenue: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_daily_limit: {
@@ -362,6 +666,37 @@ export type Database = {
       }
       check_premium_access: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      check_premium_feature_access: {
+        Args: { feature_name: string }
+        Returns: boolean
+      }
+      create_analytics_event: {
+        Args: {
+          p_business_type: Database["public"]["Enums"]["business_type"]
+          p_event_type: string
+          p_event_data: Json
+          p_revenue_amount?: number
+        }
+        Returns: string
+      }
+      create_notification: {
+        Args: {
+          p_title: string
+          p_message: string
+          p_type?: string
+          p_data?: Json
+        }
+        Returns: string
+      }
+      generate_detailed_report: {
+        Args: {
+          p_business_type: Database["public"]["Enums"]["business_type"]
+          p_report_type: string
+          p_start_date: string
+          p_end_date: string
+        }
         Returns: Json
       }
       generate_order_number: {

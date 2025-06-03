@@ -1,10 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import type { Order, BusinessType, OrderStatus } from '@/types/order';
 
 export const useOrderOperations = () => {
   const { toast } = useToast();
+  const { trackOrderCreated, trackOrderCompleted } = useAnalytics();
 
   const createOrder = async (businessType: BusinessType, orderData: Partial<Order>) => {
     try {
@@ -105,6 +107,14 @@ export const useOrderOperations = () => {
 
       console.log('Order created successfully:', data);
 
+      // Track analytics event
+      await trackOrderCreated(businessType, {
+        order_id: data.id,
+        order_number: data.order_number,
+        total_amount: data.total_amount,
+        customer_id: data.customer_id
+      });
+
       toast({
         title: "Berhasil",
         description: "Pesanan berhasil dibuat dengan nomor: " + orderNumber,
@@ -139,14 +149,26 @@ export const useOrderOperations = () => {
         updateData.finished_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update(updateData)
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error updating order status:', error);
         throw error;
+      }
+
+      // Track analytics event for completed orders
+      if (status === 'selesai') {
+        await trackOrderCompleted(data.business_type, {
+          order_id: data.id,
+          order_number: data.order_number,
+          total_amount: data.total_amount,
+          customer_id: data.customer_id
+        });
       }
 
       toast({
