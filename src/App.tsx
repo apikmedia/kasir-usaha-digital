@@ -10,6 +10,7 @@ import { User, Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
 import DemoApp from "./components/DemoApp";
 import NotFound from "./pages/NotFound";
+import InstallPrompt from "./components/pwa/InstallPrompt";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,6 +82,7 @@ const App = () => {
             )}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <InstallPrompt />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
